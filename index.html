@@ -1,524 +1,675 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light">
-<meta name="description" content="HIMGAURAV unified slope-monitoring dashboard for Himachal Pradesh and the Seven Sister states of Northeast India — live numerical weather-model feeds, near-real-time earthquake catalogue data, optional ThingSpeak field-sensor integration, plus a clearly isolated scripted presentation demo.">
-<title>HIMGAURAV — Unified Slope Watch</title>
-<style>
-:root{
-  --bg:#F4F7F5; --card:#FFFFFF; --soft:#EEF3F1; --soft2:#F8FAF9;
-  --ink:#13201D; --muted:#5C6B66; --faint:#84918D; --line:#DCE5E1; --line2:#C6D2CE;
-  --brand:#155C63; --brand2:#0D4147; --brandWash:#E5F1F1;
-  --green:#247A4B; --greenWash:#E7F4EC;
-  --amber:#9B6B11; --amberWash:#FBF1DB;
-  --orange:#B9501D; --orangeWash:#FCEADF;
-  --red:#AA2924; --redWash:#FBE6E4;
-  --violet:#6B50A1; --violetWash:#F0EBF8;
-  --slate:#687873; --slateWash:#EDF1F0;
-  --shadow:0 8px 30px rgba(20,50,43,.06);
-  --radius:16px; --radius-sm:10px;
-  --ui:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-button,input,select{font:inherit;color:inherit}
-button{cursor:pointer}
-a{color:var(--brand);text-underline-offset:2px}
-:focus-visible{outline:3px solid rgba(21,92,99,.24);outline-offset:2px}
-.hidden{display:none!important}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}.muted{color:var(--muted)}
-.app{min-height:100dvh}
-.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-.topin{max-width:1240px;margin:auto;padding:10px 18px;display:flex;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}.brandmark{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--brandWash);flex:none}
-.brandmark svg{width:25px;height:25px}.brandtext b{display:block;font-size:15px;letter-spacing:.04em}.brandtext span{display:block;font-size:10.8px;color:var(--muted);white-space:nowrap}
-.topstatus{margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--soft2);border-radius:999px;padding:4px 8px;font-size:10.8px;color:var(--muted);white-space:nowrap}
-.chip i{width:7px;height:7px;border-radius:50%;background:var(--slate)}.chip.live{background:var(--greenWash);color:#185D38;border-color:#C7E2D1}.chip.live i{background:var(--green);animation:pulse 1.8s ease-in-out infinite}.chip.warn{background:var(--amberWash);color:#71500F;border-color:#EBD7AB}.chip.warn i{background:var(--amber)}.chip.bad{background:var(--redWash);color:#79201D;border-color:#EFC6C2}.chip.bad i{background:var(--red)}.chip.sim{background:var(--violetWash);color:#523A80;border-color:#DACFEF}.chip.sim i{background:var(--violet)}
-@keyframes pulse{50%{opacity:.35;transform:scale(1.55)}}
-.mode{display:flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden;background:var(--soft)}.mode button{border:0;background:transparent;padding:5px 9px;font-size:10.5px;font-weight:700;color:var(--muted)}.mode button.on{background:var(--brand);color:#fff}.mode button#modeDemo.on{background:var(--violet)}
-.demoBanner{display:none;background:var(--violet);color:#fff;text-align:center;padding:7px 12px;font-size:12px;font-weight:650}.sim .demoBanner{display:block}
-.feedbar{background:#EEF4F2;border-bottom:1px solid var(--line)}.feedin{max-width:1240px;margin:auto;padding:6px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.feedin .spacer{flex:1}.linkbtn{border:0;background:none;color:var(--brand);padding:0;font-size:11px;text-decoration:underline;text-underline-offset:2px}
-.navwrap{max-width:1240px;margin:0 auto;padding:11px 18px 0}.nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}.nav::-webkit-scrollbar{display:none}.nav button{border:1px solid transparent;background:transparent;border-radius:10px;padding:8px 11px;display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;font-weight:650;white-space:nowrap}.nav button svg{width:16px;height:16px}.nav button.active{background:var(--card);border-color:var(--line);color:var(--brand);box-shadow:0 2px 8px rgba(20,50,43,.04)}
-main{max-width:1240px;margin:0 auto;padding:12px 18px 90px}.view{display:none}.view.active{display:block;animation:viewIn .22s ease both}@keyframes viewIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:4px 0 14px}.pagehead h1{font-size:20px;margin:0;letter-spacing:-.02em}.pagehead p{margin:3px 0 0;color:var(--muted);font-size:12.5px;max-width:70ch}.pagehead .actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-.btn{border:1px solid var(--line2);background:var(--card);border-radius:10px;padding:8px 11px;font-size:12px;font-weight:650;display:inline-flex;align-items:center;gap:6px;text-decoration:none}.btn:hover{background:var(--soft2)}.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand2)}.btn.sm{padding:6px 9px;font-size:11px}.btn.ghost{background:transparent}.btn:disabled{opacity:.5;cursor:not-allowed}
-.grid{display:grid;gap:12px}.cols2{grid-template-columns:repeat(2,minmax(0,1fr))}.cols3{grid-template-columns:repeat(3,minmax(0,1fr))}.cols4{grid-template-columns:repeat(4,minmax(0,1fr))}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px}.card.flat{box-shadow:none}.card h2,.card h3{margin:0}.sectitle{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}.sectitle h2{font-size:14px;letter-spacing:-.01em}.sectitle small{font-size:10.5px;color:var(--faint)}
-.hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:12px;margin-bottom:12px}.riskHero{min-height:228px;position:relative;overflow:hidden}.riskHero:after{content:"";position:absolute;right:-80px;bottom:-95px;width:270px;height:270px;border-radius:50%;background:linear-gradient(145deg,rgba(21,92,99,.08),rgba(21,92,99,.01));pointer-events:none}.heroTop{display:flex;align-items:center;gap:18px;position:relative;z-index:1}.riskRing{width:116px;height:116px;flex:none;position:relative}.riskRing svg{width:100%;height:100%;transform:rotate(-90deg)}.ringCenter{position:absolute;inset:0;display:grid;place-content:center;text-align:center}.ringCenter b{font-size:17px;line-height:1}.ringCenter span{font-size:9px;color:var(--faint);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}.riskText h2{font-size:29px;letter-spacing:-.04em;margin:0 0 5px}.riskText p{margin:0;color:var(--muted);font-size:13px;max-width:56ch}.actionLine{margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--soft2);font-size:12.3px;display:flex;gap:9px;align-items:flex-start}.actionLine b{white-space:nowrap}.sourceLine{margin-top:11px;display:flex;gap:6px;flex-wrap:wrap}.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:6px;font:700 9px/1.4 var(--mono);letter-spacing:.03em;border:1px solid var(--line2);background:var(--soft);color:var(--muted)}.tag.live{background:var(--greenWash);color:#175C38;border-color:#C7E2D1}.tag.derived{background:#E8F1F7;color:#235F83;border-color:#C9DEEB}.tag.sensor{background:var(--brandWash);color:var(--brand);border-color:#C8DEDF}.tag.sim{background:var(--violetWash);color:#5A4388;border-color:#D8CDEF}.tag.ref{background:var(--soft);color:var(--muted)}.tag.exp{background:var(--amberWash);color:#75520D;border-color:#E6D1A4}.tag.none{background:var(--slateWash);color:var(--slate);border-color:var(--line2)}
-.quickGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick{border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--soft2);min-height:86px}.quick .label{font-size:10.5px;color:var(--faint)}.quick .value{font:700 21px/1.2 var(--mono);margin-top:5px;letter-spacing:-.04em}.quick .sub{font-size:10.5px;color:var(--muted);margin-top:3px}.quick.good .value{color:var(--green)}.quick.attn .value{color:var(--orange)}
-.districtStrip{display:flex;gap:8px;overflow:auto;padding:2px 2px 8px;scroll-snap-type:x proximity}.districtStrip::-webkit-scrollbar{height:5px}.districtStrip::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}.district{flex:0 0 104px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px;text-align:left;scroll-snap-align:start;transition:.18s}.district:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(20,50,43,.06)}.district.active{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}.district .sw{width:22px;height:6px;border-radius:99px;background:var(--slate);margin-bottom:8px}.district .nm{font-size:11.5px;font-weight:700}.district .val{font:600 10.5px var(--mono);color:var(--muted);margin-top:3px}
-.selSummary{display:grid;grid-template-columns:1.4fr repeat(3,.6fr);gap:8px;align-items:stretch}.selIntro{padding:3px 4px}.selIntro b{font-size:15px}.selIntro p{font-size:11px;color:var(--muted);margin:4px 0 0}.mini{background:var(--soft2);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center}.mini label{display:block;font-size:9.5px;color:var(--faint)}.mini .v{font:700 14px var(--mono);margin-top:4px}
-.barlist{display:flex;flex-direction:column;gap:7px}.barrow{display:grid;grid-template-columns:90px 1fr 48px;align-items:center;gap:8px;font-size:10.5px}.barrow .lab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}.track{height:8px;border-radius:99px;background:var(--soft);overflow:hidden}.fill{height:100%;border-radius:99px;transition:width .5s ease}.barrow .n{font:600 10px var(--mono);text-align:right;color:var(--muted)}
-.siteLayout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:12px}.sitePanel{position:sticky;top:128px;align-self:start}.siteList{display:flex;flex-direction:column;gap:7px;max-height:540px;overflow:auto}.sitebtn{border:1px solid var(--line);background:var(--card);border-radius:11px;padding:9px;text-align:left;display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center}.sitebtn.active{border-color:var(--brand);background:var(--brandWash)}.sitebtn .stateDot{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font:800 11px var(--mono);background:var(--slateWash);color:var(--slate)}.sitebtn .nm{font-size:11.5px;font-weight:700}.sitebtn .ds{font-size:9.5px;color:var(--faint)}.sitebtn .stateWord{font:700 9px var(--mono)}
-.siteHero{display:flex;gap:14px;align-items:flex-start}.ladder{width:52px;display:flex;flex-direction:column-reverse;gap:3px;flex:none}.ladder span{height:14px;border-radius:4px;background:var(--soft);border:1px solid var(--line)}.ladder span.on{background:currentColor;border-color:currentColor}.siteHero h2{font-size:25px;margin:0;letter-spacing:-.035em}.siteHero p{font-size:12.5px;color:var(--muted);margin:5px 0 0}.siteState.NORMAL{color:var(--green)}.siteState.MONITOR{color:var(--amber)}.siteState.WATCH{color:var(--orange)}.siteState.WARNING{color:var(--red)}.siteState.NODATA{color:var(--slate)}
-.evidenceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.evidence{border:1px solid var(--line);border-radius:11px;background:var(--soft2);padding:10px}.evidence .k{font-size:10px;color:var(--faint)}.evidence .v{font:700 14px var(--mono);margin:4px 0 2px}.evidence .why{font-size:10.5px;color:var(--muted)}
-.chart{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px;overflow:hidden}.chart svg{width:100%;height:auto;display:block}.chartCap{font-size:9.8px;color:var(--faint);margin-top:5px}.metricGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.metric{border:1px solid var(--line);border-radius:11px;background:var(--soft2);padding:10px}.metric label{display:block;font-size:9.5px;color:var(--faint)}.metric .mv{font:700 15px var(--mono);margin-top:4px}.metric .ms{font-size:9.5px;color:var(--muted);margin-top:2px}
-.mapBox{position:relative;overflow:hidden}.mapBox svg{width:100%;height:auto;display:block}.mapLegend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:9.5px;color:var(--muted)}
-.inputrow{display:flex;gap:7px;flex-wrap:wrap}.inp{border:1px solid var(--line2);background:#fff;border-radius:10px;padding:8px 10px;font-size:12px;min-width:0}.inp.flex{flex:1}.helper{font-size:10px;color:var(--faint);margin-top:7px}
-.sensorHero{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px}.health{border:1px solid var(--line);border-radius:13px;padding:12px;display:flex;gap:10px;align-items:center;background:var(--soft2)}.healthGlyph{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font:800 15px var(--mono);background:var(--slateWash);color:var(--slate)}.health b{display:block;font-size:13px}.health span{font-size:10.5px;color:var(--muted)}
-.pipeline{display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr;align-items:stretch}.pipebox{border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;background:var(--soft2);min-height:92px;display:grid;align-content:center}.pipebox .t{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint)}.pipebox .v{font-size:15px;font-weight:750;margin-top:4px}.pipebox.hot{background:var(--redWash);border-color:#E8AFAA;color:var(--red)}.pipebox.watch{background:var(--amberWash);border-color:#E3C889;color:#7A5410}.arrow{display:grid;place-items:center;color:var(--faint)}
-.langrow{display:flex;gap:7px;flex-wrap:wrap}.langbtn{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:6px 10px;font-size:10.5px}.langbtn.active{background:var(--brand);border-color:var(--brand);color:#fff}.alertPreview{border:1px solid var(--line);background:var(--soft2);border-radius:13px;padding:14px;min-height:110px}.alertPreview .msg{font-size:14px;line-height:1.55}.alertPreview .note{font-size:10px;color:var(--faint);margin-top:8px}
-.roadWrap svg{width:100%;display:block}.roadNode{transition:.2s}.roadNode:hover{filter:brightness(.96)}
-.log{list-style:none;margin:0;padding:0}.log li{display:grid;grid-template-columns:74px 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:11px}.log time{font:10px var(--mono);color:var(--faint)}.log b{font-size:11px}.log .src{font-size:9.5px;color:var(--faint);margin-top:2px}.log .kind{font:700 8.5px var(--mono);background:var(--soft);border:1px solid var(--line);padding:2px 5px;border-radius:5px;height:max-content;color:var(--muted)}
-.details{border:1px solid var(--line);background:var(--card);border-radius:12px;overflow:hidden}.details summary{cursor:pointer;padding:12px 14px;font-weight:700;font-size:12px;list-style:none;display:flex;justify-content:space-between;gap:10px}.details summary::-webkit-details-marker{display:none}.details summary:after{content:"+";color:var(--faint)}.details[open] summary:after{content:"–"}.details .body{border-top:1px solid var(--line);padding:12px 14px;font-size:11.5px;color:var(--muted)}.details table{width:100%;border-collapse:collapse}.details th,.details td{text-align:left;padding:7px 5px;border-bottom:1px solid var(--line);vertical-align:top}.details th{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
-.sourceList{display:grid;gap:7px}.sourceItem{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--soft2)}.sourceItem a{font-size:11.5px;font-weight:700;text-decoration:none}.sourceItem .meta{font-size:9.5px;color:var(--faint);margin-top:2px}.sourceItem .used{font-size:10px;color:var(--muted);margin-top:4px}
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);z-index:90;background:#17312C;color:#fff;border-radius:11px;padding:9px 13px;font-size:11.5px;box-shadow:0 8px 28px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:.2s;max-width:min(480px,90vw);text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.simpleOnly{}.technical{display:none}.techOn .technical{display:block}.techOn .simpleOnly{display:none}
-@media(max-width:900px){.hero,.sensorHero{grid-template-columns:1fr}.siteLayout{grid-template-columns:1fr}.sitePanel{position:static}.cols4{grid-template-columns:repeat(2,1fr)}.selSummary{grid-template-columns:1fr repeat(3,.55fr)}}
-@media(max-width:650px){.topin{padding:9px 12px}.brandtext span{display:none}.topstatus .chip:nth-of-type(2){display:none}.feedin,.navwrap,main{padding-left:12px;padding-right:12px}.pagehead{align-items:flex-start;flex-direction:column}.pagehead .actions{justify-content:flex-start}.riskHero{min-height:auto}.heroTop{align-items:flex-start}.riskRing{width:92px;height:92px}.riskText h2{font-size:23px}.quickGrid{grid-template-columns:1fr 1fr}.cols2,.cols3{grid-template-columns:1fr}.metricGrid{grid-template-columns:repeat(2,1fr)}.evidenceGrid{grid-template-columns:1fr}.selSummary{grid-template-columns:1fr 1fr 1fr}.selIntro{grid-column:1/-1}.pipeline{grid-template-columns:1fr}.arrow{height:24px;transform:rotate(90deg)}.barrow{grid-template-columns:72px 1fr 45px}.log li{grid-template-columns:62px 1fr}.log .kind{display:none}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-.regionSelect{border:1px solid var(--line2);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 28px 5px 9px;font:650 10.5px var(--sans);cursor:pointer;max-width:190px}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f6f5">
+  <meta name="description" content="HIMGAURAV — Satellite–IoT landslide screening and field intelligence for Himachal Pradesh.">
+  <title>HIMGAURAV — Landslide Intelligence</title>
+  <link rel="icon" href="assets/himgaurav-mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=7.0.0">
 </head>
 <body>
-<div class="app" id="app">
-  <div class="demoBanner" id="demoBanner">DEMO MODE — SCRIPTED PRESENTATION DATA. Nothing changing on this screen is live. Press LIVE to discard the demo and refetch real feeds.</div>
-  <header class="topbar">
-    <div class="topin">
+  <svg class="icon-sprite" aria-hidden="true">
+    <symbol id="i-command" viewBox="0 0 24 24"><path d="M3 17 9 9l3.5 4L17 5l4 6M3 21h18"/></symbol>
+    <symbol id="i-sensor" viewBox="0 0 24 24"><path d="M12 3v6m0 6v6M6.3 6.5a8 8 0 0 0 0 11M17.7 6.5a8 8 0 0 1 0 11"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.7 19h18.6L12 3Z"/><path d="M12 9v4m0 3h.01"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06-2.78 2.78-.06-.06A1.8 1.8 0 0 0 15 19.4a1.8 1.8 0 0 0-1.1 1.64V21h-3.9v-.08A1.8 1.8 0 0 0 8.9 19.3a1.8 1.8 0 0 0-1.98.36l-.06.06-2.78-2.78.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.64-1.1H3V10h.08A1.8 1.8 0 0 0 4.7 8.9a1.8 1.8 0 0 0-.36-1.98l-.06-.06 2.78-2.78.06.06A1.8 1.8 0 0 0 9 4.6a1.8 1.8 0 0 0 1.1-1.64V3H14v.08A1.8 1.8 0 0 0 15.1 4.7a1.8 1.8 0 0 0 1.98-.36l.06-.06 2.78 2.78-.06.06A1.8 1.8 0 0 0 19.4 9a1.8 1.8 0 0 0 1.64 1.1H21V14h-.08A1.8 1.8 0 0 0 19.4 15Z"/></symbol>
+    <symbol id="i-language" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M5 10v4h4l5 4V6L9 10H5Z"/><path d="M17 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-zone" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/></symbol>
+    <symbol id="i-rescue" viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.9 4.9l2.8 2.8m8.6 8.6 2.8 2.8M2 12h4m12 0h4M4.9 19.1l2.8-2.8m8.6-8.6 2.8-2.8"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-research" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18.2 9A7 7 0 0 0 6.5 6.5L4 11m16 2-2.5 4.5A7 7 0 0 1 5.8 15"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M6 18h11a4 4 0 0 0 .4-8A6 6 0 0 0 6 8.5 4.7 4.7 0 0 0 6 18Z"/><path d="M8 21v-1m4 1v-1m4 1v-1"/></symbol>
+    <symbol id="i-satellite" viewBox="0 0 24 24"><path d="m5 5 4 1 9 9 1 4-4-1-9-9-1-4Z"/><path d="m15 9 4-4m-2-2 4 4M9 15l-4 4m-2-2 4 4"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4m8.4-8.4a6 6 0 0 1 0 8.4M4.5 4.5a10.6 10.6 0 0 0 0 15m15-15a10.6 10.6 0 0 1 0 15"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M5 20h14"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  </svg>
+
+  <div id="simulationBanner" class="simulation-banner" hidden>
+    <strong>DEMO / SIMULATED</strong><span>Scripted data is isolated from live data and never presented as observation.</span>
+    <button id="demoPrev" type="button">Previous</button><button id="demoNext" type="button">Advance scenario</button>
+  </div>
+
+  <div class="app-shell">
+    <header class="topbar">
       <div class="brand">
-        <div class="brandmark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="#155C63" stroke-width="1.9" stroke-linejoin="round"><path d="M2 27 11 10l4 7 5-12 10 22Z"/><path d="m10 27 5-9" stroke="#B9501D"/></svg></div>
-        <div class="brandtext"><b>HIMGAURAV</b><span id="brandSub">Unified Slope Watch · Seven Sisters · Northeast India</span></div>
+        <img src="assets/himgaurav-mark.svg" alt="" width="34" height="34">
+        <div><strong>HIMGAURAV</strong><span>Himalayan slope intelligence · research prototype</span><em class="build-badge">v7.0 · ACUSEARCH LAB</em></div>
       </div>
-      <div class="topstatus">
-        <select id="regionSelect" class="regionSelect" aria-label="Monitoring region"><option value="ne">Seven Sisters · NE India</option><option value="hp">Himachal Pradesh</option></select>
-        <span class="chip" id="chipRain"><i></i><span>rain: starting</span></span>
-        <span class="chip" id="chipQuake"><i></i><span>seismic: starting</span></span>
-        <span class="chip" id="chipSensor"><i></i><span>sensor: none</span></span>
-        <div class="mode" aria-label="Data mode"><button id="modeLive" class="on" aria-pressed="true">LIVE</button><button id="modeDemo" aria-pressed="false">DEMO</button></div>
+      <div class="feed-strip" aria-live="polite">
+        <span class="feed-chip" id="feedWeather"><i></i><b>Rainfall</b><em>starting</em></span>
+        <span class="feed-chip" id="feedMap"><i></i><b>Map</b><em>starting</em></span>
+        <span class="feed-chip" id="feedSatellite"><i></i><b>Satellite</b><em>standby</em></span>
+        <span class="feed-chip" id="feedRadar"><i></i><b>Radar</b><em>standby</em></span>
+        <span class="feed-chip" id="feedSensor"><i></i><b>Field node</b><em>not connected</em></span>
       </div>
-    </div>
-  </header>
-  <div class="feedbar"><div class="feedin"><span class="mono" id="clock" style="font-size:10px;color:var(--muted)">--:-- IST</span><span style="font-size:10px;color:var(--faint)">•</span><span id="freshText" style="font-size:10px;color:var(--muted)">Starting data feeds…</span><span class="spacer"></span><button class="linkbtn" id="btnRefresh">Refresh data</button></div></div>
-  <div class="navwrap"><nav class="nav" id="nav" aria-label="Dashboard sections">
-    <button class="active" data-tab="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17 9 9l3 3 5-7 4 6"/><path d="M3 21h18"/></svg>Overview</button>
-    <button data-tab="sites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6Z"/><path d="M9 3v15M15 6v15"/></svg>Sites</button>
-    <button data-tab="sensor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v7"/><circle cx="12" cy="13" r="2.5"/><path d="M6 7a8 8 0 0 0 0 12M18 7a8 8 0 0 1 0 12"/></svg>Sensor</button>
-    <button data-tab="response"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v10"/><path d="m8 9 4 4 4-4"/><path d="M4 17h16v4H4z"/></svg>Response</button>
-    <button data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h12"/></svg>Event log</button>
-    <button data-tab="about"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>Details & sources</button>
-  </nav></div>
-
-  <main>
-    <!-- OVERVIEW -->
-    <section class="view active" id="view-overview">
-      <div class="pagehead"><div><h1>What is happening right now?</h1><p>A simple first screen for live feed status, current weather, recent rainfall, earthquakes and any connected field sensor. A landslide risk state is shown only where the underlying method is appropriate.</p></div><div class="actions"><button class="btn sm" id="btnNearestDistrict">📍 Nearest state</button><button class="btn sm" id="btnSimple">Show technical</button></div></div>
-      <div class="hero">
-        <div class="card riskHero">
-          <div class="heroTop">
-            <div class="riskRing" id="riskRing"><div class="ringCenter"><b>—</b><span>state</span></div></div>
-            <div class="riskText"><div class="tag derived" id="tagStateType">DERIVED</div><h2 id="overviewState">Checking…</h2><p id="overviewExplain">Fetching rainfall data and evaluating the selected site.</p></div>
-          </div>
-          <div class="actionLine"><b id="actionTitle">Next step</b><span id="actionText">Wait for the first live update.</span></div>
-          <div class="sourceLine"><span class="tag live" id="tagRain">LIVE weather</span><span class="tag ref" id="tagThreshold">published threshold</span><span class="tag sensor" id="tagSensor">sensor not connected</span><span class="tag ref" id="tagRegionValidity">HP-calibrated</span></div>
+      <div class="top-actions">
+        <button id="openAlertQuick" class="alert-quick" type="button" title="Open multilingual alert centre"><svg><use href="#i-bell"/></svg><span>Alert Centre</span><i id="alertQuickDot"></i></button>
+        <button id="openSatelliteQuick" class="satellite-quick" type="button" title="Open Satellite Intelligence"><svg><use href="#i-satellite"/></svg><span>Satellite Intelligence</span></button>
+        <button id="openRescueQuick" class="rescue-quick" type="button" title="Open AcuSearch research lab"><svg><use href="#i-rescue"/></svg><span>AcuSearch Lab</span></button>
+        <div class="mode-switch" aria-label="Data mode">
+          <button id="modeLive" type="button" aria-pressed="true">LIVE</button>
+          <button id="modeDemo" type="button" aria-pressed="false">DEMO</button>
         </div>
-        <div class="card">
-          <div class="sectitle"><h2>At a glance</h2><small id="overviewSiteLabel">Kotrupi</small></div>
-          <div class="quickGrid">
-            <div class="quick"><div class="label" id="qRainLabel">Current precip.</div><div class="value" id="qRain">—</div><div class="sub" id="qRainSub">live model grid</div></div>
-            <div class="quick"><div class="label" id="qAnteLabel">30-day rain</div><div class="value" id="qAnte">—</div><div class="sub" id="qAnteSub">antecedent total</div></div>
-            <div class="quick"><div class="label" id="qRatioLabel">Threshold</div><div class="value" id="qRatio">—</div><div class="sub" id="qRatioSub">highest exceedance</div></div>
-            <div class="quick"><div class="label">Ground sensor</div><div class="value" id="qSensor">—</div><div class="sub" id="qSensorSub">not connected</div></div>
-          </div>
-        </div>
+        <button class="icon-btn" id="refreshAll" type="button" title="Refresh data"><svg><use href="#i-refresh"/></svg></button>
       </div>
+    </header>
 
-      <div class="card" id="neLiveNotice" style="margin-bottom:12px;display:none;border-color:#B9D7D9;background:#F5FBFB">
-        <div class="sectitle"><h2 id="neModeTitle">Northeast live-data mode</h2><small><span class="tag live" id="neModeTag">LIVE DATA ONLY</span></small></div>
-        <p id="neModeText" style="font-size:12px;color:var(--muted);margin:0 0 10px">LIVE uses fetched weather-model data, the real earthquake catalogue and any real ThingSpeak sensor you connect. DEMO is a separately labelled scripted presentation scenario; demo values are never presented as live.</p>
-        <div class="inputrow"><a class="btn sm" href="https://bhusanket.gsi.gov.in/" target="_blank" rel="noopener noreferrer">Open GSI Bhusanket ↗</a><a class="btn sm" href="https://riseq.seismo.gov.in/riseq/earthquake" target="_blank" rel="noopener noreferrer">Open NCS earthquakes ↗</a></div>
-      </div>
+    <nav class="rail" aria-label="Primary navigation">
+      <div class="rail-mark"><img src="assets/himgaurav-mark.svg" alt=""></div>
+      <button type="button" data-view="command" aria-current="page"><svg><use href="#i-command"/></svg><span>Command</span></button>
+      <button type="button" data-view="satellite" class="rail-satellite"><svg><use href="#i-satellite"/></svg><span>Satellite</span><small>EO</small></button>
+      <button type="button" data-view="sensor"><svg><use href="#i-sensor"/></svg><span>Nodes</span></button>
+      <button type="button" data-view="events"><svg><use href="#i-alert"/></svg><span>Events</span></button>
+      <button type="button" data-view="alerts" class="rail-alert"><svg><use href="#i-bell"/></svg><span>Alerts</span><small>CAP</small></button>
+      <button type="button" data-view="rescue" class="rail-rescue"><svg><use href="#i-rescue"/></svg><span>AcuSearch</span><small>LAB</small></button>
+      <button type="button" data-view="research"><svg><use href="#i-research"/></svg><span>System</span></button>
+    </nav>
 
-      <div class="card" style="margin-bottom:12px">
-        <div class="sectitle"><h2 id="areaRainTitle">12 districts — rainfall today</h2><small id="districtTime">live weather grid</small></div>
-        <div class="districtStrip" id="districtStrip"></div>
-        <div class="selSummary" id="districtSummary">
-          <div class="selIntro"><b id="dName">Mandi</b><p id="dNote">Select a district.</p></div>
-          <div class="mini"><label>Temperature</label><div class="v" id="dTemp">—</div></div>
-          <div class="mini"><label id="dRainLabel">Rain today</label><div class="v" id="dRain">—</div></div>
-          <div class="mini"><label id="d3Label">Past 3 days</label><div class="v" id="d3">—</div></div>
-        </div>
-      </div>
+    <main>
+      <section class="view is-active" id="view-command" aria-labelledby="commandTitle">
+        <h1 id="commandTitle" class="sr-only">HIMGAURAV command map</h1>
+        <div class="command-layout">
+          <div class="map-stage">
+            <div id="map" class="map" role="application" aria-label="Interactive landslide intelligence map of Himachal Pradesh"></div>
+            <div id="mapFallback" class="map-fallback" hidden aria-live="polite"></div>
 
-      <div class="grid cols2">
-        <div class="card"><div class="sectitle"><h2 id="areaCompareTitle">District comparison</h2><small>sorted by today’s rain</small></div><div class="barlist" id="districtBars"></div></div>
-        <div class="card"><div class="sectitle"><h2>Selected site — last 14 days</h2><small><span class="tag live" id="overviewRainTag">LIVE</span></small></div><div class="chart"><svg id="overviewRainChart" viewBox="0 0 560 180"></svg><div class="chartCap" id="overviewRainCap">Daily precipitation from Open-Meteo; model-grid data, not a rain gauge.</div></div></div>
-      </div>
-
-      <div class="technical" style="margin-top:12px">
-        <div class="grid cols2" style="margin-bottom:12px">
-          <div class="card"><div class="sectitle"><h2>Selected-site conditions</h2><small>diagnostic view</small></div><div class="metricGrid"><div class="metric"><label>Temperature</label><div class="mv" id="techTemp">—</div></div><div class="metric"><label>Humidity</label><div class="mv" id="techHum">—</div></div><div class="metric"><label>Wind</label><div class="mv" id="techWind">—</div></div><div class="metric"><label>Soil 0–7 cm</label><div class="mv" id="techSoil">—</div></div></div></div>
-          <div class="card" id="mlCard"><div class="sectitle"><h2>Experimental district model</h2><small><span class="tag exp">SYNTHETIC TRAINING</span></small></div><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px"><div><div style="font-size:10px;color:var(--faint)">Classifier output for selected district</div><div id="mlPct" style="font:750 26px var(--mono);margin-top:4px">—</div></div><div style="flex:1;max-width:260px"><div class="track"><div class="fill" id="mlBar" style="width:0;background:var(--violet)"></div></div></div></div><p style="font-size:10px;color:var(--muted);margin:9px 0 0">Preserved from the earlier prototype for demonstration only. It is logistic regression trained on synthetic threshold-shaped data, not historical labelled landslide records, so it is not used to set the main warning state.</p></div>
-        </div>
-        <div class="card" style="margin-bottom:12px"><div class="sectitle"><h2>Regional seismicity — 90 days</h2><small id="quakeCount">USGS context</small></div><div class="barlist" id="quakeBars"></div><div class="helper" id="quakeNote"></div></div>
-        <details class="details"><summary>Show the exact screening logic</summary><div class="body" id="overviewLogic"></div></details>
-      </div>
-    </section>
-
-    <!-- SITES -->
-    <section class="view" id="view-sites">
-      <div class="pagehead"><div><h1>Monitored slopes & places</h1><p id="siteIntro">Pick a site to see rainfall screening. You can also add your own coordinate; custom sites are saved in this browser.</p></div><div class="actions"><button class="btn sm" id="btnNearestSite">📍 Nearest site</button></div></div>
-      <div class="siteLayout">
-        <aside class="card sitePanel"><div class="sectitle"><h2>Sites</h2><small id="siteCount">—</small></div><div class="siteList" id="siteList"></div></aside>
-        <div class="grid" style="gap:12px">
-          <div class="card">
-            <div class="siteHero">
-              <div class="ladder siteState NODATA" id="siteLadder"><span></span><span></span><span></span><span></span></div>
-              <div><div class="tag derived" id="siteStateTag">DERIVED</div><h2 id="siteStateName">NO DATA</h2><p id="siteStateText">Waiting for rainfall data.</p><div style="margin-top:7px;font-size:10px;color:var(--faint)" id="siteAge">—</div></div>
+            <div class="map-head">
+              <div>
+                <span class="eyebrow">GEOSPATIAL COMMAND</span>
+                <h2 id="mapSiteTitle">Kotrupi · Mandi</h2>
+              </div>
+              <div class="map-head-actions">
+                <button class="map-pill" id="nearestSite" type="button"><svg><use href="#i-crosshair"/></svg>Nearest site</button>
+                <button class="map-pill" id="openSiteDialog" type="button"><svg><use href="#i-plus"/></svg>Add slope</button>
+              </div>
             </div>
-            <div class="evidenceGrid" id="siteEvidence"></div>
+
+            <div class="layer-dock" aria-label="Map layers">
+              <button type="button" data-base="street" class="active" title="Street basemap"><svg><use href="#i-layers"/></svg><span>Street</span></button>
+              <button type="button" data-base="terrain" title="Topographic basemap"><svg><use href="#i-command"/></svg><span>Terrain</span></button>
+              <button type="button" data-base="satellite" title="NASA Earth observation imagery"><svg><use href="#i-satellite"/></svg><span>Earth</span></button>
+              <span class="dock-sep"></span>
+              <button type="button" id="toggleRadar" aria-pressed="false" title="Recent weather radar"><svg><use href="#i-cloud"/></svg><span>Radar</span></button>
+              <button type="button" id="toggleQuakes" aria-pressed="false" title="USGS earthquake context"><svg><use href="#i-radio"/></svg><span>Seismic</span></button>
+            </div>
+
+            <div class="map-legend" id="mapLegend">
+              <span><i class="legend-ring normal"></i>screening state</span>
+              <span><i class="legend-rain"></i>forecast rain sample</span>
+              <button type="button" id="legendMore">Data truth</button>
+            </div>
+
+            <div class="forecast-bar">
+              <div class="forecast-copy">
+                <span class="eyebrow">FORECAST TIMELINE</span>
+                <strong id="forecastLabel">Now</strong>
+                <small><span id="forecastSourceText">Blue halos are Open‑Meteo precipitation sampled only at monitored coordinates — not a hazard surface.</span></small>
+              </div>
+              <div class="time-steps" role="group" aria-label="Forecast horizon">
+                <button type="button" data-hour="0" class="active">Now</button>
+                <button type="button" data-hour="3">+3h</button>
+                <button type="button" data-hour="6">+6h</button>
+                <button type="button" data-hour="12">+12h</button>
+                <button type="button" data-hour="24">+24h</button>
+              </div>
+            </div>
           </div>
-          <div class="grid cols2">
-            <div class="card" id="siteRainCard"><div class="sectitle"><h2>Rain history</h2><small>31 days</small></div><div class="chart"><svg id="siteRainChart" viewBox="0 0 560 200"></svg><div class="chartCap" id="siteRainCap">—</div></div></div>
-            <div class="card" id="thresholdCard"><div class="sectitle"><h2>Threshold check</h2><small>I = 7.20·D⁻⁰·²⁶</small></div><div class="chart"><svg id="thresholdChart" viewBox="0 0 560 200"></svg><div class="chartCap" id="thresholdCap">—</div></div></div>
+
+          <aside class="inspector" aria-label="Situation inspector">
+            <div class="site-selector-row">
+              <label for="siteSelect">Site / context</label>
+              <select id="siteSelect"></select>
+            </div>
+
+            <div class="state-hero" id="stateHero">
+              <div class="state-orbit"><span id="stateGlyph">?</span><i></i></div>
+              <div class="state-copy">
+                <span class="eyebrow">SCREENING STATE</span>
+                <div class="state-line"><strong id="stateWord">STARTING</strong><span id="stateAge">—</span></div>
+                <p id="stateWhy">Reading the rainfall model for this coordinate.</p>
+              </div>
+            </div>
+
+            <div class="quick-metrics" id="quickMetrics">
+              <article><span>24 h rainfall</span><strong id="m24">—</strong><small id="m24Src">modelled</small></article>
+              <article><span>72 h rainfall</span><strong id="m72">—</strong><small id="m72Src">modelled</small></article>
+              <article><span>Threshold peak</span><strong id="mRatio">—</strong><small id="mRatioSub">derived</small></article>
+            </div>
+            <div class="weather-context" aria-label="Current model context">
+              <span><small>Air</small><b id="wxTemp">—</b></span>
+              <span><small>RH</small><b id="wxRh">—</b></span>
+              <span><small>Topsoil model</small><b id="wxSoil">—</b></span>
+              <em id="wxContextTag">MODEL</em>
+            </div>
+
+            <section class="inspector-section">
+              <div class="section-title"><div><span class="eyebrow">EVIDENCE</span><h3>Why this state</h3></div><button id="evidenceExpand" type="button" class="text-btn">Inspect</button></div>
+              <div id="evidenceCompact" class="evidence-compact"></div>
+            </section>
+
+            <section class="inspector-section chart-section">
+              <div class="section-title"><div><span class="eyebrow">RAINFALL</span><h3>Past + forecast</h3></div><span id="rainSourceTag" class="provenance live">LIVE MODEL</span></div>
+              <svg id="rainSpark" class="spark-chart" viewBox="0 0 360 118" role="img" aria-label="Daily modelled precipitation for the selected site"></svg>
+              <div class="chart-caption"><span id="rainChartCaption">Waiting for data.</span><button id="openRainDetail" type="button">threshold detail</button></div>
+            </section>
+
+            <section class="inspector-section">
+              <div class="section-title"><div><span class="eyebrow">FIELD REPORTS</span><h3>Human observations</h3></div><span class="provenance report">UNVERIFIED</span></div>
+              <div id="reportSummary" class="report-summary">No local report for this site.</div>
+              <details class="report-entry">
+                <summary>Add a visible precursor sign</summary>
+                <label for="reportSign">Observed sign</label><select id="reportSign"></select>
+                <label for="reportNote">Location / note</label><input id="reportNote" maxlength="160" placeholder="e.g. road cut above hairpin, fresh crack">
+                <button id="addReport" type="button" class="primary-btn">Add report</button>
+                <small>Reports never change the automated state by themselves.</small>
+              </details>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view content-view satellite-view" id="view-satellite" aria-labelledby="satelliteTitle">
+        <header class="page-head satellite-page-head">
+          <div>
+            <span class="eyebrow">EARTH OBSERVATION</span>
+            <h1 id="satelliteTitle">Satellite intelligence</h1>
+            <p>Real, dated Earth-observation imagery is shown separately from field telemetry. Imagery is evidence — never fabricated as a live camera feed.</p>
           </div>
-          <div class="card mapBox"><div class="sectitle"><h2>Site map</h2><small>schematic locations</small></div><svg id="siteMap" viewBox="0 0 760 300" role="img" aria-label="Schematic map of monitored Himachal sites"></svg><div class="mapLegend"><span>● selected site</span><span>○ monitored site</span><span>Map is schematic, not a hazard layer.</span></div></div>
-          <div class="card">
-            <div class="sectitle"><h2>Add your own slope</h2><small>saved locally</small></div>
-            <div class="inputrow"><input class="inp flex" id="customName" placeholder="Site name"><input class="inp" id="customLat" inputmode="decimal" placeholder="Latitude"><input class="inp" id="customLon" inputmode="decimal" placeholder="Longitude"><button class="btn primary" id="btnAddSite">Add site</button></div>
-            <div class="helper" id="addSiteMsg">Example: enter any coordinate. The same rainfall screen can be calculated there, but the published threshold is calibrated for Shimla and is an extrapolation elsewhere.</div>
+          <div class="satellite-head-actions">
+            <span class="satellite-live-note">REAL NASA / SENTINEL PRODUCTS</span>
+            <span id="satSourceTag" class="provenance recent">RECENT EO</span>
+          </div>
+        </header>
+
+        <div class="satellite-toolbar" aria-label="Satellite image controls">
+          <label>Site / slope<select id="satSiteSelect"></select></label>
+          <div class="sat-product-switch" role="group" aria-label="Satellite product">
+            <button type="button" data-sat-product="hls-s2" class="active">Sentinel‑2 · 30 m</button>
+            <button type="button" data-sat-product="viirs-true">VIIRS · true colour</button>
+            <button type="button" data-sat-product="viirs-false">VIIRS · false colour</button>
+            <button type="button" data-sat-product="modis-terra">MODIS Terra</button>
+          </div>
+          <div class="sat-date-control">
+            <button id="satPrevDay" type="button" aria-label="Previous imagery date">←</button>
+            <label>Image date<input id="satDate" type="date"></label>
+            <button id="satNextDay" type="button" aria-label="Next imagery date">→</button>
+            <button id="satLatest" type="button">Recent</button>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- SENSOR -->
-    <section class="view" id="view-sensor">
-      <div class="pagehead"><div><h1>Ground sensor</h1><p>In LIVE mode, connect a public ThingSpeak channel carrying real slow tilt / inclination readings. In DEMO mode, the sensor trace is scripted and clearly marked simulated for presentation.</p></div></div>
-      <div class="sensorHero">
-        <div class="card">
-          <div class="sectitle"><h2>Connect ThingSpeak</h2><small><span class="tag exp">EXPERIMENTAL</span></small></div>
-          <div class="inputrow"><input class="inp flex" id="tsChannel" inputmode="numeric" placeholder="Public channel ID"><input class="inp" id="tsField" inputmode="numeric" value="1" style="width:100px" aria-label="ThingSpeak field"><select class="inp" id="sensorSite" aria-label="Bind sensor to site"></select><button class="btn primary" id="btnConnectSensor">Connect</button><button class="btn" id="btnDisconnectSensor" disabled>Disconnect</button></div>
-          <div class="helper">Expected value: inclination or another slow slope-change signal in consistent units. Polling interval: 15 seconds.</div>
+        <div class="satellite-layout">
+          <section class="satellite-map-card">
+            <div id="satelliteMap" class="satellite-map" role="application" aria-label="Real satellite imagery map for the selected HIMGAURAV site"></div>
+            <div id="satelliteFallback" class="satellite-fallback" hidden>
+              <strong>Satellite viewer unavailable</strong>
+              <span>The data source is not replaced with a fake image. Start HIMGAURAV through the local server and check network access to NASA GIBS.</span>
+            </div>
+            <div class="satellite-hud">
+              <div><span class="eyebrow">PRODUCT</span><strong id="satHudProduct">Sentinel‑2 surface reflectance</strong></div>
+              <div><span class="eyebrow">DATE</span><strong id="satHudDate">—</strong></div>
+              <div><span class="eyebrow">SITE</span><strong id="satHudSite">Kotrupi</strong></div>
+            </div>
+            <div class="satellite-opacity">
+              <span>Imagery</span><input id="satOpacity" type="range" min="20" max="100" value="92" aria-label="Satellite layer opacity"><span>Map</span>
+            </div>
+          </section>
+
+          <aside class="satellite-inspector">
+            <section class="sat-panel emphasis">
+              <div class="section-title"><div><span class="eyebrow">IMAGE SOURCE</span><h2 id="satPanelTitle">Sentinel‑2 / HLS</h2></div><span id="satLoadState" class="provenance recent">REQUESTING</span></div>
+              <dl class="sat-meta">
+                <div><dt>Provider</dt><dd id="satProvider">NASA EOSDIS GIBS</dd></div>
+                <div><dt>Product</dt><dd id="satProductMeta">HLS Sentinel‑2 surface reflectance</dd></div>
+                <div><dt>Nominal resolution</dt><dd id="satResolution">30 m</dd></div>
+                <div><dt>Temporal type</dt><dd id="satTemporal">Daily product · dated imagery</dd></div>
+                <div><dt>Selected date</dt><dd id="satDateMeta">—</dd></div>
+              </dl>
+              <p id="satInterpretation" class="sat-note">Use the high-resolution surface reflectance to inspect visible scar, vegetation and road-cut context. Cloud or missing acquisition can leave gaps; a blank patch is never interpreted as stable ground.</p>
+            </section>
+
+            <section class="sat-panel">
+              <div class="section-title"><div><span class="eyebrow">SATELLITE + IoT FUSION</span><h2>Three independent evidence channels</h2></div></div>
+              <div class="fusion-stack">
+                <div><span class="fusion-icon eo"><svg><use href="#i-satellite"/></svg></span><p><b>Earth observation</b><small id="satFusionEO">Dated imagery for visual inspection; not yet an automated state input.</small></p><em id="satFusionEOTag">RECENT</em></div>
+                <div><span class="fusion-icon rain"><svg><use href="#i-cloud"/></svg></span><p><b>Rainfall forcing</b><small id="satFusionRain">Waiting for rainfall screening.</small></p><em id="satFusionRainTag">MODEL</em></div>
+                <div><span class="fusion-icon node"><svg><use href="#i-sensor"/></svg></span><p><b>Ground node</b><small id="satFusionNode">No reporting node bound to this slope.</small></p><em id="satFusionNodeTag">NONE</em></div>
+              </div>
+              <div class="truth-note"><b>No fake fusion score:</b> satellite imagery, rainfall and node telemetry stay visibly separate. HIMGAURAV only escalates the operational state from signals whose logic is explicitly defined.</div>
+            </section>
+
+            <section class="sat-panel">
+              <div class="section-title"><div><span class="eyebrow">DEFORMATION</span><h2>Sentinel‑1 SAR / InSAR</h2></div><span class="provenance experimental">NOT PROCESSED</span></div>
+              <p>Sentinel‑1 can support deformation analysis, but an honest InSAR result requires paired scenes, orbit/terrain correction, interferogram processing and coherence checks. This build does not invent a displacement heatmap.</p>
+              <div class="button-row">
+                <a id="openWorldview" class="secondary-btn sat-link" target="_blank" rel="noopener noreferrer">Open selected date in NASA Worldview ↗</a>
+                <a class="secondary-btn sat-link" href="https://browser.dataspace.copernicus.eu/" target="_blank" rel="noopener noreferrer">Open Copernicus Browser ↗</a>
+              </div>
+            </section>
+          </aside>
         </div>
-        <div class="card"><div class="health" id="sensorHealth"><div class="healthGlyph" id="healthGlyph">?</div><div><b id="healthTitle">Not connected</b><span id="healthText">No field instrument is contributing to the state.</span></div></div></div>
+
+        <section class="sat-timeline-panel">
+          <div class="section-title"><div><span class="eyebrow">IMAGERY TIMELINE</span><h2>Quick date scan</h2></div><small>Dates are requests to the real NASA imagery service; unavailable/cloudy coverage remains visibly unavailable.</small></div>
+          <div id="satTimeline" class="sat-timeline"></div>
+        </section>
+      </section>
+
+      <section class="view content-view" id="view-sensor" aria-labelledby="sensorTitle">
+        <header class="page-head">
+          <div><span class="eyebrow">FIELD NETWORK</span><h1 id="sensorTitle">Sensor network</h1><p>Instrument health first. A silent node is never interpreted as a quiet slope.</p></div>
+          <span class="provenance experimental">EXPERIMENTAL</span>
+        </header>
+
+        <div class="node-layout">
+          <section class="network-canvas" aria-label="Sensor architecture">
+            <div class="network-line"></div>
+            <article class="network-node field-node">
+              <div class="node-icon"><svg><use href="#i-sensor"/></svg><i id="nodePulse"></i></div>
+              <span class="eyebrow">FIELD NODE 01</span><h2>ESP32 multi-sensor slope node</h2><p>Inclination, soil-moisture, rainfall and radio telemetry can be shown. Only validated inclination corroboration is currently allowed to affect WARNING.</p>
+              <span id="nodeStatusPill" class="node-status">NOT CONNECTED</span>
+            </article>
+            <div class="network-link"><span id="loraStatus">LoRa path · PROPOSED / unmapped</span></div>
+            <article class="network-node gateway-node">
+              <div class="node-icon"><svg><use href="#i-radio"/></svg></div>
+              <span class="eyebrow">GATEWAY / CLOUD</span><h2>ThingSpeak telemetry</h2><p>Public read feed only. Local siren logic must remain on-device.</p>
+              <span class="node-status muted">BROWSER READ</span>
+            </article>
+          </section>
+
+          <section class="node-panel">
+            <div class="section-title"><div><span class="eyebrow">CONNECTION</span><h2>Public ThingSpeak channel</h2></div><span id="sensorSourceTag" class="provenance none">NO DATA</span></div>
+            <div class="form-grid compact">
+              <label>Channel ID<input id="tsChannel" inputmode="numeric" placeholder="public channel"></label>
+              <label>Bind node to site<select id="tsSite"></select></label>
+              <label>Tilt field<select id="tsTilt"></select></label>
+              <label>Moisture field<select id="tsMoist"></select></label>
+              <label>Rain field<select id="tsRain"></select></label>
+              <label>Battery field<select id="tsBattery"></select></label>
+              <label>RSSI field<select id="tsRssi"></select></label>
+            </div>
+            <div class="button-row"><button class="primary-btn" id="connectSensor" type="button">Connect / update</button><button class="secondary-btn" id="disconnectSensor" type="button">Disconnect</button></div>
+            <p class="quiet">Optional fields are displayed as raw telemetry unless your own calibration defines a physical unit. No private API key is stored in this page.</p>
+          </section>
+        </div>
+
+        <section class="sensor-health-grid">
+          <article class="health-block" id="sensorHealthBlock"><span class="eyebrow">INSTRUMENT HEALTH</span><h2 id="sensorHealth">NOT CONNECTED</h2><p id="sensorHealthWhy">Connect a public ThingSpeak channel to evaluate freshness, baseline, noise and sustained inclination anomaly.</p></article>
+          <article class="sensor-kpi"><span>Inclination</span><strong id="sTilt">—</strong><small id="sTiltSub">latest</small></article>
+          <article class="sensor-kpi"><span>Deviation</span><strong id="sDev">—</strong><small>from baseline</small></article>
+          <article class="sensor-kpi"><span>Moisture</span><strong id="sMoist">—</strong><small>raw / mapped</small></article>
+          <article class="sensor-kpi"><span>Rain input</span><strong id="sRain">—</strong><small>raw / mapped</small></article>
+          <article class="sensor-kpi"><span>Battery</span><strong id="sBattery">—</strong><small>raw / mapped</small></article>
+          <article class="sensor-kpi"><span>RSSI</span><strong id="sRssi">—</strong><small>raw / mapped</small></article>
+        </section>
+
+        <section class="wide-panel">
+          <div class="section-title"><div><span class="eyebrow">INCLINATION HISTORY</span><h2>Baseline + noise envelope</h2></div><span class="provenance experimental">3× measured noise</span></div>
+          <svg id="tiltChart" viewBox="0 0 960 260" class="wide-chart" role="img" aria-label="Inclination history"></svg>
+        </section>
+
+        <details class="method-disclosure">
+          <summary>Why this uses inclination instead of claiming seismic detection</summary>
+          <div>
+            <p>The existing project correctly rejects STA/LTA on a cloud stream sampled roughly every 15 seconds: the waveform needed for seismic onset detection is gone before the browser receives it. The current node therefore treats slow inclination as the honest browser-visible measurement and estimates its baseline/noise from its own history.</p>
+            <p>The anomaly rule is preserved: sustained displacement beyond max(3 × measured noise, 0.05°) for three samples. It is an engineering trigger, not a validated landslide classifier, and can only confirm a rainfall WATCH — it cannot create WARNING by itself.</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="view content-view" id="view-events" aria-labelledby="eventsTitle">
+        <header class="page-head"><div><span class="eyebrow">OPERATIONS</span><h1 id="eventsTitle">Events & state changes</h1><p>Only actions and data changes that actually occurred in this session are logged.</p></div><div class="button-row"><button class="secondary-btn" id="copyLog" type="button">Copy log</button><button class="secondary-btn" id="clearLog" type="button">Clear</button></div></header>
+        <div class="events-layout">
+          <section class="wide-panel"><div class="section-title"><div><span class="eyebrow">SITES + CONTEXT</span><h2>Monitored slopes and regional points</h2></div><span id="siteCountMeta" class="quiet"></span></div><div id="siteStatusTable" class="site-status-table"></div></section>
+          <section class="wide-panel"><div class="section-title"><div><span class="eyebrow">SESSION LOG</span><h2>Evidence trail</h2></div><span id="logCount" class="quiet"></span></div><ol id="eventLog" class="event-log"></ol></section>
+        </div>
+      </section>
+
+      <section class="view content-view alert-view" id="view-alerts" aria-labelledby="alertsTitle">
+        <header class="page-head alert-page-head">
+          <div>
+            <span class="eyebrow">OPERATOR ALERT WORKSPACE</span>
+            <h1 id="alertsTitle">Multilingual alert centre</h1>
+            <p>Build a clear, geo-targeted alert from the evidence already visible in HIMGAURAV. Core language templates, CAP export, local siren, browser notifications and copy/export tools work locally without cloud credentials.</p>
+          </div>
+          <div class="button-row alert-head-actions">
+            <span id="alertModeTag" class="provenance proposed">DRAFT ONLY</span>
+            <button class="secondary-btn" id="alertOpenCommand" type="button"><svg><use href="#i-command"/></svg>Command map</button>
+            <button class="secondary-btn" id="openAlertSettings" type="button"><svg><use href="#i-settings"/></svg>Settings</button>
+          </div>
+        </header>
+
+        <div class="alert-hero-grid">
+          <section class="wide-panel alert-readiness-panel">
+            <div class="section-title"><div><span class="eyebrow">EVIDENCE → ALERT GATE</span><h2>Is an alert draft justified?</h2></div><span id="alertReadinessTag" class="provenance none">CHECKING</span></div>
+            <div class="alert-readiness-hero">
+              <div class="alert-state-disc" id="alertStateDisc"><span id="alertStateGlyph">?</span></div>
+              <div><small id="alertSiteMeta">Kotrupi · monitored slope</small><h3 id="alertStateTitle">Reading site state…</h3><p id="alertStateReason">HIMGAURAV checks data freshness, site type and independent ground evidence before stronger alert wording is allowed.</p></div>
+            </div>
+            <div id="alertReadinessChecks" class="readiness-checks"></div>
+            <div class="alert-target-strip">
+              <div><span class="eyebrow">TARGET</span><strong id="alertTargetLabel">Selected monitored slope</strong><small>Operator-selected circle for communication targeting — not a landslide run-out model.</small></div>
+              <label>Radius<select id="alertRadius"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="5">5 km</option><option value="10">10 km</option></select></label>
+              <button id="previewAlertZone" class="secondary-btn" type="button"><svg><use href="#i-zone"/></svg>Preview on map</button>
+            </div>
+          </section>
+
+          <section class="wide-panel alert-preview-panel" aria-live="polite">
+            <div class="section-title"><div><span class="eyebrow">LIVE PREVIEW</span><h2>What a person will read</h2></div><span id="alertPreviewLanguage" class="provenance reference">ENGLISH</span></div>
+            <article class="citizen-alert-card" id="citizenAlertCard">
+              <header><span id="alertPreviewState" class="preview-state">MONITOR</span><time id="alertPreviewTime">now</time></header>
+              <h3 id="alertPreviewHeadline">Generate an alert from current evidence</h3>
+              <p id="alertPreviewDescription">The preview updates as you select a language or edit the alert.</p>
+              <div class="preview-action"><svg><use href="#i-alert"/></svg><span id="alertPreviewInstruction">Protective action will appear here.</span></div>
+              <footer><span id="alertPreviewSite">HIMGAURAV</span><span id="alertPreviewRadius">3 km target</span></footer>
+            </article>
+            <div class="preview-note"><svg><use href="#i-shield"/></svg><span>Prototype decision-support message. Public dissemination still requires the responsible authority.</span></div>
+          </section>
+        </div>
+
+        <div class="alert-workbench-grid">
+          <section class="wide-panel alert-composer-panel">
+            <div class="section-title"><div><span class="eyebrow">MESSAGE STUDIO</span><h2>Localized alert message</h2></div><span id="alertCoverageCount" class="quiet">1 language ready</span></div>
+            <div class="alert-form-grid compact">
+              <label>Language<select id="alertLanguage"></select></label>
+              <label>Workflow<select id="alertWorkflow"><option value="internal">Internal advisory</option><option value="drill">Drill / exercise</option><option value="handoff">Agency handoff draft</option></select></label>
+              <label>Severity<select id="alertSeverity"><option value="auto">Auto from screening state</option><option value="Minor">Minor</option><option value="Moderate">Moderate</option><option value="Severe">Severe</option><option value="Extreme">Extreme</option></select></label>
+              <label>Expiry<select id="alertExpiry"><option value="30">30 min</option><option value="60" selected>1 hour</option><option value="180">3 hours</option><option value="360">6 hours</option></select></label>
+            </div>
+            <div class="localization-banner"><svg><use href="#i-language"/></svg><div><b id="alertLanguageMeta">Offline local template</b><span id="translationStatus">Choose a language. HIMGAURAV generates the operational template locally — no translation API or key is required.</span></div></div>
+            <label class="full-field">Headline<input id="alertHeadline" maxlength="160" placeholder="Landslide watch for Kotrupi"></label>
+            <label class="full-field">Situation<textarea id="alertDescription" rows="4" maxlength="1200"></textarea></label>
+            <label class="full-field">Protective action<textarea id="alertInstruction" rows="4" maxlength="1200"></textarea></label>
+            <div class="alert-composer-actions primary-actions">
+              <button id="generateAlertDraft" class="primary-btn" type="button"><svg><use href="#i-refresh"/></svg>Generate from evidence</button>
+              <button id="translateAlert" class="secondary-btn" type="button"><svg><use href="#i-language"/></svg>Rebuild this language</button>
+              <button id="generateAllLanguages" class="secondary-btn" type="button">Build 23-language pack</button>
+              <button id="saveAlertLanguage" class="secondary-btn" type="button">Save reviewed edits</button>
+            </div>
+            <div id="savedLanguages" class="language-chips language-coverage"></div>
+          </section>
+
+          <section class="wide-panel alert-device-panel">
+            <div class="section-title"><div><span class="eyebrow">WORKING ON THIS DEVICE</span><h2>Test & export</h2></div><span class="provenance live">LOCAL</span></div>
+            <div class="device-action-list">
+              <article><div class="channel-icon"><svg><use href="#i-bell"/></svg></div><div><h3>Browser notification</h3><p>Uses your browser's real notification permission on localhost.</p></div><span id="browserNotifyStatus" class="channel-status">CHECK</span><button id="enableBrowserNotify" type="button">Enable / test</button></article>
+              <article><div class="channel-icon"><svg><use href="#i-volume"/></svg></div><div><h3>Read this language aloud</h3><p id="deviceVoiceStatus">Checking installed browser voices…</p></div><span id="audioAlertStatus" class="channel-status">CHECK</span><button id="speakAlert" type="button">Read aloud</button></article>
+              <article><div class="channel-icon"><svg><use href="#i-radio"/></svg></div><div><h3>Local drill siren</h3><p>Web Audio test pattern. It never claims to be an official siren.</p></div><span class="channel-status ok">READY</span><button id="testLocalAlert" type="button">Test siren</button></article>
+              <article><div class="channel-icon"><svg><use href="#i-download"/></svg></div><div><h3>CAP 1.2 XML</h3><p>Downloads the current geo-targeted multilingual alert package.</p></div><span class="channel-status ok">READY</span><button id="downloadCAP" type="button">Download XML</button></article>
+              <article><div class="channel-icon"><svg><use href="#i-copy"/></svg></div><div><h3>Copy alert text</h3><p>Copies the selected language headline and protective action.</p></div><span class="channel-status ok">READY</span><button id="copyAlertText" type="button">Copy</button></article>
+              <article><div class="channel-icon"><svg><use href="#i-download"/></svg></div><div><h3>Structured JSON</h3><p>Downloads the same draft as a machine-readable local file.</p></div><span class="channel-status ok">READY</span><button id="downloadAlertJSON" type="button">Download JSON</button></article>
+            </div>
+          </section>
+        </div>
+
+        <section class="wide-panel language-pack-panel">
+          <div class="section-title"><div><span class="eyebrow">LANGUAGE COVERAGE</span><h2>Scheduled-language alert pack</h2></div><span class="quiet">23 choices · local templates</span></div>
+          <p class="lede">English plus the 22 Scheduled Languages are available as built-in operational templates. They work offline. These are prototype translations, not certified government wording; reviewed operator edits are preserved and marked separately.</p>
+          <div class="language-pack-toolbar"><button id="generateAllLanguages2" class="primary-btn" type="button">Generate all languages now</button><span id="languagePackSummary" class="quiet">Only the languages you generate are included in CAP export.</span></div>
+          <div id="languageCoverageGrid" class="language-coverage-grid"></div>
+        </section>
+
+        <details class="wide-panel optional-integrations-panel" id="optionalIntegrations">
+          <summary><span><span class="eyebrow">OPTIONAL INTEGRATIONS</span><b>External connectors</b></span><span id="optionalConnectorSummary" class="quiet">No external connector required for core alert features</span></summary>
+          <div class="optional-integrations-body">
+            <p class="lede">These controls appear only when you configure a real endpoint in <code>.env</code>. HIMGAURAV never simulates a successful agency, LoRa-gateway or SACHET connection.</p>
+            <div class="channel-grid compact-channel-grid">
+              <article id="agencyWebhookCard" hidden><div class="channel-icon"><svg><use href="#i-shield"/></svg></div><div><h3>Agency/test webhook</h3><p>Server-side HTTP POST to an endpoint you control.</p></div><span id="agencyWebhookStatus" class="channel-status">NOT CONFIGURED</span><button id="sendAgencyWebhook" type="button">Send draft</button></article>
+              <article id="localGatewayCard" hidden><div class="channel-icon"><svg><use href="#i-radio"/></svg></div><div><h3>Local LoRa / siren gateway</h3><p>Server-side HTTP POST to a Node-RED, ESP32 or LoRa bridge you control.</p></div><span id="localGatewayStatus" class="channel-status">NOT CONFIGURED</span><button id="sendLocalGateway" type="button">Send test packet</button></article>
+              <article class="official-channel"><div class="channel-icon"><svg><use href="#i-alert"/></svg></div><div><h3>NDMA SACHET / Cell Broadcast</h3><p>Authoritative external public-warning infrastructure. This prototype does not have publishing authority.</p></div><span class="channel-status official">OFFICIAL EXTERNAL</span><a href="https://sachet.ndma.gov.in/" target="_blank" rel="noopener">Open SACHET ↗</a></article>
+            </div>
+            <section id="officialFeedSection" class="official-feed-panel" hidden>
+              <div class="section-title"><div><span class="eyebrow">READ-ONLY OFFICIAL FEED</span><h2>SACHET CAP reference</h2></div><div class="button-row"><span id="officialFeedStatus" class="provenance proposed">NOT CONFIGURED</span><button id="refreshOfficialFeed" class="secondary-btn" type="button">Refresh</button></div></div>
+              <div id="officialAlertFeed" class="official-alert-feed"></div>
+            </section>
+          </div>
+        </details>
+
+        <section class="wide-panel alert-audit-panel">
+          <div class="section-title"><div><span class="eyebrow">AUDIT TRAIL</span><h2>What actually happened</h2></div><button id="clearAlertAudit" class="text-btn" type="button">Clear</button></div>
+          <ol id="alertAuditLog" class="alert-audit-log"></ol>
+        </section>
+      </section>
+
+      <section class="view content-view" id="view-rescue" aria-labelledby="rescueTitle">
+        <header class="page-head rescue-page-head">
+          <div><span class="eyebrow">ACUSEARCH · SATURATED-SOIL RESCUE RESEARCH</span><h1 id="rescueTitle">Measure first. Claim later.</h1><p>A working experiment workspace for the real unanswered question: can any low-cost phone-band or acoustic signal survive realistic water-saturated landslide soil?</p></div>
+          <div class="button-row"><span class="provenance experimental">EXPERIMENTAL</span><a class="secondary-btn link-btn" href="docs/ACUSEARCH-RESEARCH.md" target="_blank" rel="noopener">Research dossier ↗</a></div>
+        </header>
+
+        <section class="acusearch-boundary" aria-label="AcuSearch evidence boundary">
+          <div><span>01</span><b>KNOWN FIELD METHODS</b><p>Canines, geostereophones, UWB life-detection radar, cameras and RECCO are established tools in their validated operating environments.</p></div>
+          <i aria-hidden="true"></i>
+          <div class="gap"><span>02</span><b>THE UNSOLVED MEASUREMENT</b><p>Published evidence does not establish a reliable smartphone detection range through saturated landslide clay/mud.</p></div>
+          <i aria-hidden="true"></i>
+          <div class="lab"><span>03</span><b>ACUSEARCH LAB</b><p>Characterise the link budget locally before deciding whether any phone-based rescue concept is physically worth building.</p></div>
+        </section>
+
+        <section class="wide-panel rescue-truth-banner">
+          <div class="rescue-truth-icon"><svg><use href="#i-shield"/></svg></div>
+          <div><span class="eyebrow">NON-NEGOTIABLE BOUNDARY</span><h2>This is not a survivor detector.</h2><p>No screen in HIMGAURAV reports a victim, rescue probability, or burial detection range. AcuSearch records controlled measurements and exposes what is known, unknown and experimentally observed.</p></div>
+          <span class="provenance experimental">RESEARCH ONLY</span>
+        </section>
+
+        <div class="acusearch-lab-grid">
+          <section class="wide-panel acu-log-card">
+            <div class="section-title"><div><span class="eyebrow">SOIL-PIT LINK-BUDGET LOG</span><h2>Record one controlled measurement</h2></div><span id="measCount" class="quiet">0 measurements</span></div>
+            <p class="panel-copy">Use local representative soil. Repeat the same geometry at dry, damp and saturated conditions. Record a detection result even when the answer is “no signal”.</p>
+            <div class="form-grid acu-form-grid">
+              <label>Signal modality<select id="mlMod"><option value="wifi">Wi‑Fi probe / 2.4 GHz</option><option value="ble">Bluetooth LE advertisement</option><option value="audible">Audible tone · 1–3 kHz</option><option value="wired">Wired contact microphone / piezo control</option></select></label>
+              <label>Burial depth (m)<select id="mlDepth"><option value="0">0.0 · surface control</option><option value="0.3">0.3</option><option value="0.6" selected>0.6</option><option value="1.0">1.0</option><option value="1.5">1.5</option><option value="2.0">2.0 · extended test</option></select></label>
+              <label>Soil condition<select id="mlMoist"><option value="dry">Dry control</option><option value="damp">Damp</option><option value="saturated">Saturated / waterlogged</option></select></label>
+              <label>Lateral distance (m)<input id="mlDist" type="number" min="0" max="50" step="0.5" inputmode="decimal" placeholder="3.0"></label>
+              <label>Detected?<select id="mlDet"><option value="yes">Yes · signal distinguishable</option><option value="no">No · below usable detection</option></select></label>
+              <label id="mlMetricWrap"><span id="mlMetricLabel">Signal metric (dBm, optional)</span><input id="mlMetric" type="number" step="0.1" inputmode="decimal" placeholder="-72"></label>
+              <label>Trial / replicate<input id="mlRep" type="number" min="1" max="99" step="1" inputmode="numeric" value="1"></label>
+              <label class="acu-note-field">Field note<input id="mlNote" maxlength="160" placeholder="soil texture, receiver, weather, equipment…"></label>
+            </div>
+            <div class="button-row acu-actions"><button class="primary-btn" id="addMeasurement" type="button">Log measurement</button><button class="secondary-btn" id="exportMeasurements" type="button"><svg><use href="#i-download"/></svg>Export CSV</button><button class="secondary-btn" id="importMeasurementsBtn" type="button">Import CSV</button><input id="importMeasurements" type="file" accept=".csv,text/csv" hidden><button class="text-btn danger-text" id="clearMeasurements" type="button">Clear local log</button></div>
+            <div class="protocol-mini">
+              <b>Minimum protocol</b><span>① surface control</span><span>② fixed burial depth</span><span>③ fixed lateral distance</span><span>④ change moisture only</span><span>⑤ repeat trials</span>
+            </div>
+          </section>
+
+          <section class="wide-panel acu-audio-card">
+            <div class="section-title"><div><span class="eyebrow">WORKING ACOUSTIC BENCH</span><h2>Tone source + microphone meter</h2></div><span id="acuAudioStatus" class="provenance none">IDLE</span></div>
+            <p class="panel-copy">Use two devices when possible: one as the sound source and one at the receiver. The microphone meter reports approximate browser dBFS, not calibrated sound-pressure level.</p>
+            <div class="acu-bench">
+              <div class="tone-console">
+                <label>Test tone<select id="acuToneFreq"><option value="1000">1 kHz</option><option value="2000" selected>2 kHz</option><option value="3000">3 kHz</option></select></label>
+                <label>Output level<input id="acuToneGain" type="range" min="0.01" max="0.20" step="0.01" value="0.05"><span id="acuToneGainValue">5%</span></label>
+                <div class="button-row"><button id="acuToneStart" class="secondary-btn" type="button"><svg><use href="#i-volume"/></svg>Start tone</button><button id="acuToneStop" class="secondary-btn" type="button" disabled>Stop</button></div>
+              </div>
+              <div class="mic-console">
+                <div class="mic-readout"><strong id="acuMicDb">—</strong><span>dBFS approx.</span></div>
+                <div class="mic-meter" aria-label="Microphone level"><i id="acuMicBar"></i></div>
+                <div class="mic-meta"><span>peak <b id="acuMicPeak">—</b></span><span id="acuMicPermission">microphone off</span></div>
+                <div class="button-row"><button id="acuMicStart" class="primary-btn" type="button">Start microphone</button><button id="acuMicStop" class="secondary-btn" type="button" disabled>Stop</button><button id="acuUseMic" class="secondary-btn" type="button" disabled>Use current value</button></div>
+              </div>
+            </div>
+            <div class="truth-note"><b>What this proves:</b> only that the browser can emit and measure an acoustic signal. Whether the signal survives a given soil condition must be established by the logged field experiment.</div>
+          </section>
+        </div>
+
+        <section class="wide-panel acu-results-panel">
+          <div class="section-title"><div><span class="eyebrow">OBSERVED RESULTS</span><h2>Detection envelope from your measurements</h2></div><span class="quiet">local experimental data only</span></div>
+          <div class="acu-filter-row">
+            <label>Modality<select id="rescueFilterMod"><option value="all">All modalities</option><option value="wifi">Wi‑Fi</option><option value="ble">BLE</option><option value="audible">Audible tone</option><option value="wired">Wired control</option></select></label>
+            <label>Soil<select id="rescueFilterMoist"><option value="all">All soil conditions</option><option value="dry">Dry</option><option value="damp">Damp</option><option value="saturated">Saturated</option></select></label>
+            <label>Depth<select id="rescueFilterDepth"><option value="all">All depths</option><option value="0">0.0 m</option><option value="0.3">0.3 m</option><option value="0.6">0.6 m</option><option value="1">1.0 m</option><option value="1.5">1.5 m</option><option value="2">2.0 m</option></select></label>
+          </div>
+          <div id="rescueSummary" class="acu-summary-strip"></div>
+          <svg id="rescueChart" viewBox="0 0 960 320" class="wide-chart acu-chart" role="img" aria-label="Observed detection results by distance and soil condition"></svg>
+          <div class="acu-chart-legend"><span><i class="acu-dot yes"></i>detected</span><span><i class="acu-dot no"></i>not detected</span><span>Vertical position = soil condition + burial depth offset</span></div>
+          <div id="measurementTable" class="measurement-table"></div>
+        </section>
+
+        <div class="acusearch-info-grid">
+          <section class="wide-panel">
+            <div class="section-title"><div><span class="eyebrow">PROTOCOL COVERAGE</span><h2>What has actually been tested?</h2></div></div>
+            <div id="rescueCoverage" class="acu-coverage-grid"></div>
+            <p class="quiet acu-footnote">Coverage means measurements exist in this browser. It does not imply validation, statistical power or successful detection.</p>
+          </section>
+          <section class="wide-panel">
+            <div class="section-title"><div><span class="eyebrow">FIELD-REALITY CHECK</span><h2>Do not confuse the research question with proven rescue equipment</h2></div></div>
+            <div class="usar-list">
+              <article><b>Canines</b><span>wide-area screening</span><em>FIELD-PROVEN</em></article>
+              <article><b>Geostereophones</b><span>voice / tapping / structural vibration</span><em>FIELD-PROVEN</em></article>
+              <article><b>UWB life-detection radar</b><span>non-contact movement / breathing in validated rubble contexts</span><em>FIELD-PROVEN</em></article>
+              <article><b>RECCO</b><span>passive reflector when the victim was already equipped</span><em>FIELD-PROVEN</em></article>
+              <article><b>Phone RF / audio in saturated soil</b><span>the AcuSearch measurement gap</span><em class="experimental">NOT VERIFIED</em></article>
+            </div>
+          </section>
+        </div>
+
+        <section class="wide-panel caution-panel acu-final-boundary"><strong>The result can legitimately be “this does not work”.</strong><p>The AcuSearch contribution is the measured link budget: detection / no-detection versus modality, burial depth, lateral distance and moisture. A negative result is useful evidence. HIMGAURAV does not invent a rescue range, survivor probability or detection claim when the physics has not been measured.</p></section>
+      </section>
+
+      <section class="view content-view" id="view-research" aria-labelledby="researchTitle">
+        <header class="page-head"><div><span class="eyebrow">RESEARCH / SYSTEM</span><h1 id="researchTitle">How HIMGAURAV works</h1><p>The detailed science, architecture, limitations and provenance live here so the command screen can stay visual-first.</p></div><a class="secondary-btn link-btn" href="legacy-audit.html" target="_blank" rel="noopener">Open audited original</a></header>
+
+        <section class="system-flow wide-panel">
+          <div class="section-title"><div><span class="eyebrow">ARCHITECTURE</span><h2>Observation → corroboration → warning</h2></div></div>
+          <div class="flow-track five">
+            <article><span>01</span><svg><use href="#i-satellite"/></svg><h3>Earth observation</h3><p>Real dated Sentinel‑2 HLS / VIIRS imagery for visual slope and regional context.</p></article><i></i>
+            <article><span>02</span><svg><use href="#i-cloud"/></svg><h3>Rainfall forcing</h3><p>Open‑Meteo precipitation at the selected coordinate.</p></article><i></i>
+            <article><span>03</span><svg><use href="#i-sensor"/></svg><h3>Field node</h3><p>Inclination plus optional moisture, rain, battery and RSSI telemetry.</p></article><i></i>
+            <article><span>04</span><svg><use href="#i-command"/></svg><h3>Evidence engine</h3><p>Source-specific logic stays inspectable; no opaque fusion score.</p></article><i></i>
+            <article><span>05</span><svg><use href="#i-alert"/></svg><h3>Operational state</h3><p>Only real monitored slopes receive slope states; regional points stay context-only.</p></article>
+          </div>
+        </section>
+
+        <div class="research-columns">
+          <section class="wide-panel">
+            <div class="section-title"><div><span class="eyebrow">STATE ENGINE</span><h2>No opaque risk score</h2></div></div>
+            <div class="logic-stack">
+              <div><b>NORMAL</b><span>No tested rainfall duration reaches the published curve.</span></div>
+              <div><b>MONITOR</b><span>The threshold is exceeded, but not strongly.</span></div>
+              <div><b>WATCH</b><span>Peak ratio ≥ 2× or antecedent 30‑day rainfall ≥ 110 mm, with a threshold exceedance.</span></div>
+              <div><b>WARNING</b><span>WATCH plus sustained ground-inclination anomaly on the same slope.</span></div>
+              <div><b>NO DATA</b><span>Rainfall feed is absent, too incomplete, or too stale to describe current conditions.</span></div>
+            </div>
+          </section>
+          <section class="wide-panel">
+            <div class="section-title"><div><span class="eyebrow">DATA TRUTH</span><h2>Every value declares what it is</h2></div></div>
+            <div class="truth-grid">
+              <span class="provenance live">LIVE</span><p>Fetched during this session from a named external service.</p>
+              <span class="provenance derived">DERIVED</span><p>Computed locally from live/reference inputs.</p>
+              <span class="provenance sensor">SENSOR</span><p>Read from a connected field instrument.</p>
+              <span class="provenance reference">REFERENCE</span><p>Dated static fact/source, never presented as live.</p>
+              <span class="provenance experimental">EXPERIMENTAL</span><p>Real method, not validated for warning at this deployment.</p>
+              <span class="provenance proposed">PROPOSED</span><p>Architecture or integration that is not connected.</p>
+              <span class="provenance demo">DEMO</span><p>Deterministic scripted data isolated from live state.</p>
+            </div>
+          </section>
+        </div>
+
+        <section class="wide-panel">
+          <div class="section-title"><div><span class="eyebrow">GEOSPATIAL SOURCES</span><h2>What is connected now vs optional</h2></div></div>
+          <div class="integration-table">
+            <div class="thead"><span>Layer</span><span>Status</span><span>Purpose</span><span>Constraint</span></div>
+            <div><b>Open-Meteo</b><span class="provenance live">RUNTIME</span><span>live retrieval of modelled rainfall, forecast and model soil moisture</span><span>top feed strip shows the actual connection state; not an IMD gauge</span></div>
+            <div><b>OpenStreetMap</b><span class="provenance live">RUNTIME</span><span>roads / settlements / geographic context</span><span>top Map feed shows whether full GIS or basic OSM fallback is active</span></div>
+            <div><b>NASA GIBS · MODIS Terra</b><span class="provenance recent">ON DEMAND</span><span>actual dated Earth-observation imagery</span><span>clouds + daily availability; not Sentinel-resolution or a live camera</span></div>
+            <div><b>RainViewer</b><span class="provenance recent">ON DEMAND</span><span>recent past radar tiles where coverage exists</span><span>absence of radar pixels is not evidence of no rain</span></div>
+            <div><b>USGS FDSN</b><span class="provenance live">ON DEMAND</span><span>regional M2.5+ seismic catalogue context</span><span>real catalogue data, but never an input to slope state</span></div>
+            <div><b>Copernicus Data Space</b><span class="provenance proposed">OPTIONAL</span><span>Sentinel‑1 / Sentinel‑2 workflow</span><span>OAuth2; use a secure backend/proxy, never a browser client secret</span></div>
+            <div><b>GSI Bhukosh / Bhuvan</b><span class="provenance reference">REFERENCE</span><span>authoritative Indian geoscience / satellite context</span><span>not silently scraped or imitated by this build</span></div>
+          </div>
+        </section>
+
+        <section class="wide-panel alert-architecture-panel">
+          <div class="section-title"><div><span class="eyebrow">LAST-MILE ARCHITECTURE</span><h2>Evidence → CAP draft → authorised dissemination</h2></div><span class="provenance proposed">PUBLIC RAIL EXTERNAL</span></div>
+          <div class="last-mile-flow">
+            <article><b>1</b><h3>Readiness gate</h3><p>Checks live mode, data freshness, monitored-slope scope and corroboration before a stronger workflow is offered.</p></article>
+            <i>→</i><article><b>2</b><h3>Multilingual CAP</h3><p>One alert can carry multiple language-specific CAP <code>info</code> blocks and a geo-target circle.</p></article>
+            <i>→</i><article><b>3</b><h3>Local channels</h3><p>Browser notification, speech and optional local-gateway webhook are testable from this build.</p></article>
+            <i>→</i><article><b>4</b><h3>Authority handoff</h3><p>Government dissemination stays with authorised CAP/SACHET/Cell Broadcast infrastructure.</p></article>
+          </div>
+        </section>
+
+        <section class="wide-panel">
+          <div class="section-title"><div><span class="eyebrow">LIMITATIONS</span><h2>What the prototype does not claim</h2></div></div>
+          <ul class="limits-list">
+            <li>Open‑Meteo values are numerical weather-model estimates on a grid, not IMD rain-gauge observations.</li>
+            <li>The rainfall threshold was fitted for Shimla. Using it at Kotrupi, Mandi, Kullu, Dharamshala or Solan is an extrapolation and the interface labels it as such.</li>
+            <li>A threshold exceedance is a screening condition, not a landslide prediction or probability of failure.</li>
+            <li>One ThingSpeak node is a student deployment/instrument demonstration, not a certified life-safety early-warning system.</li>
+            <li>Seismic events are contextual only. Regional catalogue completeness cannot detect a single slope starting to fail.</li>
+            <li>Browser notifications, local speech and siren tests are operator-device outputs only. Public SMS / Cell Broadcast remains outside the prototype unless an authorised agency connector is configured.</li>
+          </ul>
+        </section>
+
+        <section class="wide-panel">
+          <div class="section-title"><div><span class="eyebrow">REFERENCES</span><h2>Scientific & operational sources</h2></div><span id="sourceCount" class="quiet"></span></div>
+          <ol id="sourceList" class="source-list"></ol>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="siteDialog" class="modal">
+    <form method="dialog" id="siteForm">
+      <div class="modal-head"><div><span class="eyebrow">CUSTOM MONITORING POINT</span><h2>Add a slope coordinate</h2></div><button value="cancel" aria-label="Close">×</button></div>
+      <p>Coordinates stay in this browser. The same gridded rainfall screen will run at this point; this does not create a mapped landslide inventory polygon.</p>
+      <label>Site name<input id="customName" maxlength="40" required placeholder="e.g. College road cut"></label>
+      <div class="form-grid two"><label>Latitude<input id="customLat" inputmode="decimal" required placeholder="31.70"></label><label>Longitude<input id="customLon" inputmode="decimal" required placeholder="76.93"></label></div>
+      <div class="button-row"><button type="button" id="useBrowserLocation" class="secondary-btn">Use browser location</button><button type="submit" value="default" class="primary-btn">Add slope</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="alertSettingsDialog" class="modal alert-settings-modal">
+    <form method="dialog" id="alertSettingsForm">
+      <div class="modal-head"><div><span class="eyebrow">ALERT SETTINGS</span><h2>Operator-device configuration</h2></div><button value="cancel" aria-label="Close">×</button></div>
+      <p class="settings-intro">Core alert functions are local and do not require an API key. External delivery connectors are optional and stay disabled until a real endpoint is configured.</p>
+      <div class="settings-grid">
+        <label>Default language<select id="settingsLanguage"></select></label>
+        <label>Default target radius<select id="settingsRadius"><option value="1">1 km</option><option value="3">3 km</option><option value="5">5 km</option><option value="10">10 km</option></select></label>
+        <label>Voice rate<input id="settingsVoiceRate" type="range" min="0.7" max="1.25" step="0.05"></label>
+        <label>Auto-create draft<select id="settingsAutoDraft"><option value="off">Off</option><option value="watch">At WATCH / WARNING</option><option value="warning">At WARNING only</option></select></label>
       </div>
-      <div class="metricGrid" style="margin-top:12px">
-        <div class="metric"><label>Latest value</label><div class="mv" id="sLatest">—</div><div class="ms">channel units</div></div>
-        <div class="metric"><label>Baseline median</label><div class="mv" id="sBaseline">—</div><div class="ms">recent history</div></div>
-        <div class="metric"><label>Measured noise</label><div class="mv" id="sNoise">—</div><div class="ms">robust MAD estimate</div></div>
-        <div class="metric"><label>Deviation</label><div class="mv" id="sDev">—</div><div class="ms">from baseline</div></div>
+      <fieldset class="settings-checks"><legend>Operator-device outputs</legend>
+        <label><input id="settingsBrowserNotify" type="checkbox"> Browser notification when an internal alert is created</label>
+        <label><input id="settingsAutoSpeak" type="checkbox"> Speak WARNING automatically only when a matching installed voice exists</label>
+        <label><input id="settingsHighContrastAlert" type="checkbox"> High-contrast alert presentation</label>
+      </fieldset>
+      <div class="settings-capabilities">
+        <div><b>Language engine</b><span class="ok-text">Built-in · 23 local templates</span></div>
+        <div><b>Selected-language voice</b><span id="settingsVoiceStatus">checking…</span></div>
+        <div><b>Browser notifications</b><span id="settingsNotificationStatus">checking…</span></div>
       </div>
-      <div class="grid cols2" style="margin-top:12px">
-        <div class="card"><div class="sectitle"><h2>Sensor history</h2><small id="sensorAge">—</small></div><div class="chart"><svg id="sensorChart" viewBox="0 0 560 200"></svg><div class="chartCap">Anomaly = sustained deviation above 3× measured noise for three recent samples. This is an engineering prototype rule, not a validated warning threshold.</div></div></div>
-        <div class="card"><div class="sectitle"><h2>Weather + field sensor</h2><small>transparent operator view</small></div><div class="pipeline"><div class="pipebox" id="pipeRain"><div class="t">Rainfall</div><div class="v" id="pipeRainV">—</div></div><div class="arrow">→</div><div class="pipebox" id="pipeSensor"><div class="t">Ground sensor</div><div class="v" id="pipeSensorV">—</div></div><div class="arrow">→</div><div class="pipebox" id="pipeResult"><div class="t">Combined</div><div class="v" id="pipeResultV">—</div></div></div><p style="font-size:10.5px;color:var(--muted);margin:10px 2px 0" id="pipeNote">A connected sensor only affects the site it is bound to.</p></div>
-      </div>
-      <div class="card" style="margin-top:12px"><div class="sectitle"><h2>ESP32 example firmware</h2><small>downloadable</small></div><div class="inputrow"><button class="btn sm" id="btnShowCode">Show code</button><button class="btn sm" id="btnDownloadCode">Download .ino</button></div><pre id="codeBox" class="hidden" style="margin:10px 0 0;max-height:360px;overflow:auto;background:#102C2C;color:#DDEBE8;border-radius:11px;padding:12px;font:10.5px/1.55 var(--mono);white-space:pre"></pre></div>
-    </section>
+      <details class="settings-advanced"><summary>Optional external connectors</summary><div class="connector-status-list">
+        <div><b>Agency webhook</b><span id="settingsWebhookStatus">Not configured</span></div>
+        <div><b>Local gateway webhook</b><span id="settingsGatewayStatus">Not configured</span></div>
+        <div><b>SACHET CAP feed (read-only)</b><span id="settingsSachetStatus">Not configured</span></div>
+      </div></details>
+      <div class="settings-note"><b>Safety rule:</b> this build never auto-sends to an external public channel. Local tests are clearly labelled as drills; CAP files remain research/agency-handoff drafts unless an authorised downstream system changes their lifecycle.</div>
+      <div class="button-row"><button id="saveAlertSettings" class="primary-btn" value="default">Save settings</button><button value="cancel" class="secondary-btn">Cancel</button></div>
+    </form>
+  </dialog>
 
-    <!-- RESPONSE -->
-    <section class="view" id="view-response">
-      <div class="pagehead"><div><h1>Response & communication</h1><p>Operator-facing tools for live status and a clearly separated presentation demo. Any DEMO alert text is explicitly simulated and is not a government warning.</p></div><div class="actions"><button class="btn sm" id="btnTestChime">🔊 Test chime</button></div></div>
-      <div class="card" style="margin-bottom:12px"><div class="sectitle"><h2>What happens after a trigger?</h2><small>simple operational flow</small></div><div class="pipeline"><div class="pipebox" id="resp1"><div class="t">1 · Screen</div><div class="v">Rain crosses threshold</div></div><div class="arrow">→</div><div class="pipebox" id="resp2"><div class="t">2 · Confirm</div><div class="v">Check local sensor + field</div></div><div class="arrow">→</div><div class="pipebox" id="resp3"><div class="t">3 · Escalate</div><div class="v">Human authority decides action</div></div></div></div>
-      <div class="grid cols2">
-        <div class="card"><div class="sectitle"><h2>Alert message preview</h2><small>English + Hindi ready</small></div><div class="langrow" id="langRow"><button class="langbtn active" data-lang="en">English</button><button class="langbtn" data-lang="hi">हिन्दी</button><button class="langbtn" data-lang="local">Local language — planned</button></div><div class="alertPreview" style="margin-top:10px" id="alertPreview"></div></div>
-        <div class="card roadWrap" id="roadCard"><div class="sectitle"><h2>Road-isolation logic</h2><small>illustrative, not live</small></div><svg id="roadSvg" viewBox="0 0 560 245" role="img" aria-label="Illustrative road isolation network"></svg><div class="chartCap" id="roadCap">Tap the highlighted slope segment to simulate a blockage and see which downstream nodes lose the main route.</div></div>
-      </div>
-      <div class="card" style="margin-top:12px"><div class="sectitle"><h2>Communication channels</h2><small>prototype status</small></div><div class="metricGrid"><div class="metric"><label>Dashboard</label><div class="mv" style="color:var(--green)">Ready</div><div class="ms">this prototype</div></div><div class="metric"><label>Local siren</label><div class="mv" style="color:var(--amber)">Planned</div><div class="ms">needs field hardware</div></div><div class="metric"><label>Cell broadcast</label><div class="mv" style="color:var(--amber)">External</div><div class="ms">authority integration required</div></div><div class="metric"><label>Store & forward</label><div class="mv" style="color:var(--amber)">Planned</div><div class="ms">for poor connectivity</div></div></div></div>
-    </section>
+  <dialog id="detailDialog" class="modal detail-modal">
+    <div class="modal-head"><div><span class="eyebrow">EVIDENCE INSPECTOR</span><h2 id="detailTitle">Threshold detail</h2></div><button id="closeDetail" aria-label="Close">×</button></div>
+    <div id="detailBody"></div>
+  </dialog>
 
-    <!-- LOG -->
-    <section class="view" id="view-log">
-      <div class="pagehead"><div><h1>Event log</h1><p>Every refresh, region change, sensor connection and dashboard event is recorded here in this browser session.</p></div><div class="actions"><button class="btn sm" id="btnCopyLog">Copy log</button><button class="btn sm" id="btnClearLog">Clear</button></div></div>
-      <div class="card"><ul class="log" id="logList"></ul></div>
-      <div class="card" id="demoControls" style="margin-top:12px;display:none"><div class="sectitle"><h2>Demo scenario control</h2><small><span class="tag sim">SIMULATED</span></small></div><div class="inputrow"><button class="btn sm" id="demoPause">Pause</button><button class="btn sm" id="demoBack">Back</button><button class="btn sm" id="demoNext">Next</button><button class="btn sm" id="demoRestart">Restart</button><button class="btn sm" id="demoSpeed">Speed 1×</button></div><div class="chart" style="margin-top:10px"><svg id="demoProgress" viewBox="0 0 760 70"></svg><div class="chartCap" id="demoCaption">—</div></div></div>
-    </section>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <!-- ABOUT -->
-    <section class="view" id="view-about">
-      <div class="pagehead"><div><h1>Details & sources</h1><p>Kept out of the main dashboard on purpose. Open only what you need.</p></div><div class="actions"><button class="btn sm" id="btnTech">Show technical details</button></div></div>
-      <div class="grid" style="gap:9px">
-        <details class="details"><summary>What the state labels mean</summary><div class="body"><table><thead><tr><th>State</th><th>Meaning in this prototype</th></tr></thead><tbody><tr><td><b>NO DATA</b></td><td>Usable rainfall data is missing or stale. This is not a safe state.</td></tr><tr><td><b>NORMAL</b></td><td>The model-grid rainfall series stays below the published intensity–duration threshold at every tested duration.</td></tr><tr><td><b>MONITOR</b></td><td>The model-grid rainfall series crosses the threshold, but not strongly and 30-day antecedent modelled rainfall is below 110 mm.</td></tr><tr><td><b>WATCH</b></td><td>The model-grid threshold is strongly exceeded, or crossing occurs with ≥110 mm antecedent 30-day modelled rainfall.</td></tr><tr><td><b>WARNING</b></td><td>WATCH model-grid rainfall state plus an abnormal bound ground sensor. This remains a prototype operator state, not an official public warning.</td></tr></tbody></table></div></details>
-        <details class="details"><summary>Data labels — what is live and what is not</summary><div class="body"><p><span class="tag live">LIVE</span> fetched during this browser session. <span class="tag derived">DERIVED</span> calculated locally from stated inputs. <span class="tag ref">REFERENCE</span> static dated fact. <span class="tag sensor">SENSOR</span> field feed. <span class="tag sim">SIMULATED</span> demo-only. <span class="tag exp">EXPERIMENTAL</span> method not validated for operational warning.</p></div></details>
-        <details class="details technical"><summary>Rainfall screening formula</summary><div class="body"><p>Intensity–duration threshold used: <b>I = 7.20 · D<sup>−0.26</sup></b>, with D in days and I in mm/day. Durations tested: 1, 2, 3, 5, 7 and 10 days. A 30-day antecedent total of 110 mm is used as an additional watch condition. The threshold was derived for Shimla; use elsewhere is explicitly an extrapolation.</p></div></details>
-        <details class="details technical"><summary>Ground-sensor method</summary><div class="body"><p>The browser reads a slow tilt/inclination series. Baseline is the recent median; noise is estimated with median absolute deviation (MAD), scaled by 1.4826. An anomaly requires three recent samples all farther than three noise units from the baseline. This is intentionally different from pretending that 15-second cloud samples are a seismic waveform.</p></div></details>
-        <details class="details"><summary>Limitations you should not miss</summary><div class="body"><ul><li>This is a research / student prototype, not an operational life-safety system.</li><li>Open-Meteo values are numerical weather-model grid values, not local rain-gauge observations.</li><li>Most rainfall threshold exceedances do not become landslides.</li><li>The published threshold used by the Himachal prototype was derived for Shimla. It is not used to generate a Northeast LIVE risk state.</li><li>Northeast DEMO values are deterministic scripted presentation data and are visually separated from LIVE mode.</li><li>ThingSpeak and a browser are not a resilient emergency communications path.</li><li>The site map and road graph are interface visualisations, not authoritative GIS layers.</li><li>Official decisions must come from the responsible government / disaster-management authorities.</li></ul></div></details>
-                <details class="details" open><summary>Sources used by this merged dashboard</summary><div class="body"><div class="sourceList" id="sourceList"></div></div></details>
-      </div>
-    </section>
-  </main>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-</div>
-
-<script>
-"use strict";
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const fmt=(n,d=1)=>Number.isFinite(Number(n))?Number(n).toFixed(d):'—';
-const median=a=>{const x=a.filter(Number.isFinite).slice().sort((p,q)=>p-q);if(!x.length)return NaN;const m=Math.floor(x.length/2);return x.length%2?x[m]:(x[m-1]+x[m])/2};
-const mad=a=>{const m=median(a);return Number.isFinite(m)?median(a.map(v=>Math.abs(v-m))):NaN};
-const ageStr=ms=>{if(!Number.isFinite(ms))return '—';if(ms<60000)return Math.max(0,Math.round(ms/1000))+'s ago';if(ms<3600000)return Math.round(ms/60000)+'m ago';return Math.round(ms/3600000)+'h ago'};
-const todayIST=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const IST_TIME=()=>new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date());
-const COLORS={NODATA:'#687873',NORMAL:'#247A4B',MONITOR:'#9B6B11',WATCH:'#B9501D',WARNING:'#AA2924',Low:'#247A4B',Moderate:'#9B6B11',High:'#B9501D',Severe:'#AA2924',na:'#687873'};
-const WMO={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Drizzle',53:'Drizzle',55:'Drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm'};
-const ML={mean:[30.7035,46.1087,0.9118],scale:[26.0884,37.5454,0.7706],coef:[1.2637,0.6429,0.9121],intercept:-2.8661};
-function mlPredict(rainToday,antecedent3,exposure){const raw=[rainToday||0,antecedent3||0,exposure||0];let z=ML.intercept;for(let i=0;i<3;i++)z+=ML.coef[i]*((raw[i]-ML.mean[i])/ML.scale[i]);return 1/(1+Math.exp(-z))}
-const THRESH={a:7.20,b:-0.26,durations:[1,2,3,5,7,10],anteMm:110,anteDays:30};
-const threshold=D=>THRESH.a*Math.pow(D,THRESH.b);
-const STATE_INFO={
- NODATA:{word:'NO DATA',glyph:'?',lv:0,action:'Check the feed before making any safety assumption.'},
- NORMAL:{word:'NORMAL',glyph:'✓',lv:1,action:'No rainfall threshold action. Keep normal monitoring.'},
- MONITOR:{word:'MONITOR',glyph:'!',lv:2,action:'Watch rainfall trend and drainage. No alarm from rainfall alone.'},
- WATCH:{word:'WATCH',glyph:'!!',lv:3,action:'Inspect the slope / drainage and verify local conditions.'},
- WARNING:{word:'WARNING',glyph:'▲',lv:4,action:'Two independent signals agree. Escalate to a responsible human operator.'}
-};
-const HP_AREAS=[
-{name:'Mandi',lat:31.7084,lon:76.9319,exposure:2,note:'Flagship Kotrupi site is in Mandi district.'},
-{name:'Kullu',lat:31.9578,lon:77.1095,exposure:2,note:'Mountain district with frequent monsoon road disruption.'},
-{name:'Shimla',lat:31.1048,lon:77.1734,exposure:1,note:'The rainfall threshold used here was derived from Shimla data.'},
-{name:'Kangra',lat:32.2190,lon:76.3234,exposure:1,note:'District centre represented by Dharamshala coordinates.'},
-{name:'Sirmaur',lat:30.5590,lon:77.2952,exposure:1,note:'Representative district-centre weather grid.'},
-{name:'Una',lat:31.4685,lon:76.2708,exposure:0,note:'Representative district-centre weather grid.'},
-{name:'Lahaul & Spiti',lat:32.5726,lon:77.0263,exposure:2,note:'High-altitude district; weather-grid interpretation differs from low valleys.'},
-{name:'Chamba',lat:32.5556,lon:76.1258,exposure:0,note:'Representative district-centre weather grid.'},
-{name:'Kinnaur',lat:31.5470,lon:78.2600,exposure:1,note:'High-relief district; representative weather grid only.'},
-{name:'Solan',lat:30.9045,lon:77.0967,exposure:1,note:'One of the districts frequently discussed in Himachal landslide literature.'},
-{name:'Bilaspur',lat:31.3418,lon:76.7562,exposure:1,note:'Representative district-centre weather grid.'},
-{name:'Hamirpur',lat:31.6861,lon:76.5217,exposure:0,note:'Representative district-centre weather grid.'}
-];
-const NE_AREAS=[
-{name:'Arunachal Pradesh',capital:'Itanagar',lat:27.08,lon:93.61,note:'Itanagar reference point · steep Eastern Himalayan terrain.'},
-{name:'Assam',capital:'Guwahati',lat:26.14,lon:91.74,note:'Guwahati reference point · landslide exposure is concentrated mainly in Assam’s hill districts.'},
-{name:'Manipur',capital:'Imphal',lat:24.82,lon:93.94,note:'Imphal reference point · valley surrounded by steep, weathered hills.'},
-{name:'Meghalaya',capital:'Shillong',lat:25.58,lon:91.89,note:'Shillong reference point · very high monsoon rainfall and hill terrain.'},
-{name:'Mizoram',capital:'Aizawl',lat:23.73,lon:92.72,note:'Aizawl reference point · steep, dissected hill terrain with frequent monsoon slope failures.'},
-{name:'Nagaland',capital:'Kohima',lat:25.68,lon:94.11,note:'Kohima reference point · steep hill terrain with strong monsoon influence.'},
-{name:'Tripura',capital:'Agartala',lat:23.83,lon:91.29,note:'Agartala reference point · lower average relief than most sister states, with hilly eastern ranges.'}
-];
-const REGIONS={
- hp:{label:'Himachal Pradesh',short:'Himachal',unit:'district',plural:'districts',areas:HP_AREAS,quake:{minLat:29.8,maxLat:33.6,minLon:75.0,maxLon:79.6},siteMap:'hp'},
- ne:{label:'Seven Sisters · Northeast India',short:'Seven Sisters',unit:'state',plural:'states',areas:NE_AREAS,quake:{minLat:22.0,maxLat:29.5,minLon:89.5,maxLon:97.5},siteMap:'ne'}
-};
-function regionCfg(){return REGIONS[APP.region]||REGIONS.hp}
-function areaList(){return regionCfg().areas}
-
-const BASE_SITES=[
-{id:'kotrupi',region:'hp',name:'Kotrupi',area:'Padhar tehsil, Mandi · NH-154',lat:31.9104,lon:76.8906,inDomain:false,basis:'Documented reactivating slope; flagship demonstration site.'},
-{id:'shimla',region:'hp',name:'Shimla',area:'Shimla district',lat:31.1048,lon:77.1734,inDomain:true,basis:'Threshold derivation area; the curve is used here inside its original study domain.'},
-{id:'mandi',region:'hp',name:'Mandi',area:'Mandi district',lat:31.7084,lon:76.9319,inDomain:false,basis:'District-centre monitoring point.'},
-{id:'kullu',region:'hp',name:'Kullu',area:'Kullu district',lat:31.9578,lon:77.1095,inDomain:false,basis:'District-centre monitoring point.'},
-{id:'dharamshala',region:'hp',name:'Dharamshala',area:'Kangra district',lat:32.2190,lon:76.3234,inDomain:false,basis:'District-centre monitoring point.'},
-{id:'solan',region:'hp',name:'Solan',area:'Solan district',lat:30.9045,lon:77.0967,inDomain:false,basis:'District-centre monitoring point.'},
-{id:'itanagar',region:'ne',name:'Itanagar',area:'Arunachal Pradesh',lat:27.08,lon:93.61,inDomain:false,basis:'Live weather reference point at the state capital. No Northeast landslide risk score is generated from this point.'},
-{id:'guwahati',region:'ne',name:'Guwahati',area:'Assam',lat:26.14,lon:91.74,inDomain:false,basis:'Live weather reference point at Guwahati. This is not a statewide landslide observation.'},
-{id:'imphal',region:'ne',name:'Imphal',area:'Manipur',lat:24.82,lon:93.94,inDomain:false,basis:'Live weather reference point at the state capital. No Northeast landslide risk score is generated from this point.'},
-{id:'shillong',region:'ne',name:'Shillong',area:'Meghalaya',lat:25.58,lon:91.89,inDomain:false,basis:'Live weather reference point at Shillong. This is not a statewide landslide observation.'},
-{id:'aizawl',region:'ne',name:'Aizawl',area:'Mizoram',lat:23.73,lon:92.72,inDomain:false,basis:'Live weather reference point at Aizawl. No Northeast landslide risk score is generated from this point.'},
-{id:'kohima',region:'ne',name:'Kohima',area:'Nagaland',lat:25.68,lon:94.11,inDomain:false,basis:'Live weather reference point at the state capital. No Northeast landslide risk score is generated from this point.'},
-{id:'agartala',region:'ne',name:'Agartala',area:'Tripura',lat:23.83,lon:91.29,inDomain:false,basis:'Live weather reference point at the state capital. No Northeast landslide risk score is generated from this point.'}
-];
-function regionSites(){return APP.sites.filter(s=>s.region===APP.region||s.region==='custom')}
-
-const SOURCES=[
-{t:'Singh et al. — Rainfall threshold equation and Bayesian analysis for landslide prediction, Shimla',m:'Natural Hazards Research 5(3), 2025',u:'I = 7.20·D⁻⁰·²⁶ and 110 mm / 30-day antecedent rainfall.',l:'https://www.sciencedirect.com/science/article/pii/S2666592124000969'},
-{t:'Petley — Kotrupi landslide in northern India',m:'AGU Landslide Blog, 13 Aug 2017',u:'Kotrupi event context and run-out.',l:'https://blogs.agu.org/landslideblog/2017/08/13/kotrupi-1/'},
-{t:'Singh, Gupta & Shukla — Kotrupi reactivation using satellite data',m:'ISPRS Archives, 2020',u:'Repeated reactivation history at Kotrupi.',l:'https://isprs-archives.copernicus.org/articles/XLII-3-W11/137/2020/'},
-{t:'Open-Meteo weather API',m:'Live/near-live public numerical weather-model feed',u:'Current precipitation, recent daily precipitation, temperature, humidity, wind and soil-moisture estimates. These are model-grid values, not local rain-gauge observations.',l:'https://open-meteo.com/en/docs'},
-{t:'USGS FDSN Event Web Service',m:'Near-real-time public earthquake catalogue',u:'Regional seismic events displayed in the dashboard.',l:'https://earthquake.usgs.gov/fdsnws/event/1/'},
-{t:'National Center for Seismology (India)',m:'Official Indian earthquake portal',u:'Official India-specific earthquake cross-check link; the dashboard does not scrape this page.',l:'https://riseq.seismo.gov.in/riseq/earthquake'},
-{t:'Abraham et al. — field monitoring to enhance rainfall thresholds',m:'Water 12(12), 3453, 2020',u:'Evidence for combining rainfall screening with local tilt sensing.',l:'https://doi.org/10.3390/w12123453'},
-{t:'Geological Survey of India — National Landslide Forecasting Centre / Bhusanket',m:'Official portal',u:'Institutional landslide forecasting context and authoritative data direction.',l:'https://bhusanket.gsi.gov.in/'},
-{t:'GSI Bhukosh',m:'National geoscience data repository',u:'Authoritative landslide inventory / susceptibility data source that is not loaded into this prototype.',l:'https://bhukosh.gsi.gov.in/'},
-{t:'ISRO Bhuvan',m:'Indian geoplatform',u:'Authoritative satellite / thematic mapping destination; the dashboard map is intentionally schematic.',l:'https://bhuvan.nrsc.gov.in/'}
-];
-
-const APP={
- mode:'live', tab:'overview', technical:false, region:'ne', districtIdx:0, siteId:'itanagar',
- sites:[], districtData:null, siteWx:{}, quakes:[], logs:[],
- sensor:{channel:'',field:'1',siteId:'itanagar',samples:[],times:[],lastTs:0,baseline:NaN,noise:NaN,deviation:NaN,anomaly:false,connected:false},
- timers:{district:0,site:0,quake:0,sensor:0,demo:0},
- demo:{i:0,playing:true,speed:1}, savedSensorConfig:null, roadBlocked:false, lang:'en', lastCombined:null
-};
-try{APP.sites=BASE_SITES.concat(JSON.parse(localStorage.getItem('himgaurav_custom_sites')||'[]').map(x=>({...x,region:x.region||'hp'})))}catch{APP.sites=BASE_SITES.slice()}
-
-function toast(msg){const e=$('#toast');e.textContent=msg;e.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.classList.remove('show'),2600)}
-function logEvent(kind,text,src=''){APP.logs.unshift({t:Date.now(),kind,text,src});APP.logs=APP.logs.slice(0,120);renderLog()}
-function setChip(id,state,text){const e=$(id);e.className='chip'+(state?' '+state:'');e.querySelector('span').textContent=text}
-function site(){return APP.sites.find(s=>s.id===APP.siteId)||regionSites()[0]||APP.sites[0]}
-function stateForSite(s){const wx=APP.siteWx[s.id];if(!wx||!wx.daily||!wx.ts||Date.now()-wx.ts>3*3600000)return {state:'NODATA',ratio:NaN,ante:NaN,rows:[]};const arr=wx.daily;const rows=THRESH.durations.map(D=>{const vals=arr.slice(-D);const sum=vals.reduce((a,b)=>a+(Number(b)||0),0);const intensity=sum/D;const th=threshold(D);return {D,sum,intensity,th,ratio:th?intensity/th:0}});const maxRatio=Math.max(...rows.map(r=>r.ratio));const ante=arr.slice(-THRESH.anteDays).reduce((a,b)=>a+(Number(b)||0),0);let st='NORMAL';if(maxRatio>=1)st='MONITOR';if(maxRatio>=2||(maxRatio>=1&&ante>=THRESH.anteMm))st='WATCH';const sen=APP.sensor;if(st==='WATCH'&&sen.connected&&sen.siteId===s.id&&sen.anomaly)st='WARNING';return {state:st,ratio:maxRatio,ante,rows};}
-function districtTier(mm){if(!Number.isFinite(mm))return'na';if(mm>=115.6)return'Severe';if(mm>=64.5)return'High';if(mm>=15.6)return'Moderate';return'Low'}
-function districtStats(i){const d=(APP.districtData||[])[i]||{},daily=d.daily||{},cur=d.current||{};const times=daily.time||[];let idx=times.indexOf(todayIST());if(idx<0&&times.length)idx=Math.min(3,times.length-1);let rain=idx>=0&&daily.precipitation_sum?Number(daily.precipitation_sum[idx]):Number(cur.precipitation);if(!Number.isFinite(rain))rain=NaN;const currentPrecip=Number(cur.precipitation);let sum3=NaN;if(idx>=0&&daily.precipitation_sum){let a=0,n=0;for(let k=Math.max(0,idx-3);k<idx;k++){const v=Number(daily.precipitation_sum[k]);if(Number.isFinite(v)){a+=v;n++}}if(n)sum3=a}return {temp:Number(cur.temperature_2m),rain,currentPrecip:Number.isFinite(currentPrecip)?currentPrecip:NaN,sum3,tier:districtTier(rain),cond:WMO[cur.weather_code]||'',sourceTime:cur.time||''}}
-function sumLast(arr,n){return arr.slice(-n).reduce((a,b)=>a+(Number(b)||0),0)}
-
-function drawLine(svg,values,{color='#155C63',labels=[],thresholds=null,fill=true}={}){const w=560,h=200,p={l:30,r:10,t:12,b:28};svg.innerHTML='';const vals=values.map(Number).map(v=>Number.isFinite(v)?v:null);const valid=vals.filter(v=>v!=null);if(!valid.length){svg.innerHTML='<text x="280" y="102" text-anchor="middle" fill="#84918D" font-size="12">No data yet</text>';return}const all=thresholds?[...valid,...thresholds.filter(Number.isFinite)]:valid;const max=Math.max(1,...all)*1.15;const x=i=>p.l+(i/Math.max(1,vals.length-1))*(w-p.l-p.r),y=v=>h-p.b-(v/max)*(h-p.t-p.b);[0,.25,.5,.75,1].forEach(q=>{const yy=y(max*q);svg.insertAdjacentHTML('beforeend',`<line x1="${p.l}" y1="${yy}" x2="${w-p.r}" y2="${yy}" stroke="#E7ECEA"/><text x="${p.l-5}" y="${yy+3}" text-anchor="end" fill="#84918D" font-size="8">${Math.round(max*q)}</text>`)});let path='';vals.forEach((v,i)=>{if(v==null)return;path+=(path?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' '});if(fill&&path){const first=vals.findIndex(v=>v!=null),last=vals.length-1-[...vals].reverse().findIndex(v=>v!=null);svg.insertAdjacentHTML('beforeend',`<path d="${path}L${x(last)} ${h-p.b}L${x(first)} ${h-p.b}Z" fill="${color}" opacity=".08"/>`)}svg.insertAdjacentHTML('beforeend',`<path d="${path}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`);if(thresholds){let tp='';thresholds.forEach((v,i)=>{if(!Number.isFinite(v))return;tp+=(tp?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' '});svg.insertAdjacentHTML('beforeend',`<path d="${tp}" fill="none" stroke="#B9501D" stroke-width="1.7" stroke-dasharray="5 4"/>`)}if(labels.length){const every=Math.max(1,Math.ceil(labels.length/7));labels.forEach((lb,i)=>{if(i%every&&i!==labels.length-1)return;svg.insertAdjacentHTML('beforeend',`<text x="${x(i)}" y="${h-7}" text-anchor="middle" fill="#84918D" font-size="8">${String(lb).slice(5)}</text>`)});}svg.insertAdjacentHTML('beforeend',`<line x1="${p.l}" y1="${h-p.b}" x2="${w-p.r}" y2="${h-p.b}" stroke="#DCE5E1"/>`)}
-function drawThreshold(svg,rows){const w=560,h=200,p={l:34,r:12,t:15,b:30};svg.innerHTML='';if(!rows.length){svg.innerHTML='<text x="280" y="102" text-anchor="middle" fill="#84918D" font-size="12">No data yet</text>';return}const max=Math.max(...rows.flatMap(r=>[r.intensity,r.th]))*1.2;const x=i=>p.l+(i/(rows.length-1))*(w-p.l-p.r),y=v=>h-p.b-(v/max)*(h-p.t-p.b);[0,.5,1].forEach(q=>{const yy=y(max*q);svg.insertAdjacentHTML('beforeend',`<line x1="${p.l}" y1="${yy}" x2="${w-p.r}" y2="${yy}" stroke="#E7ECEA"/><text x="${p.l-5}" y="${yy+3}" text-anchor="end" fill="#84918D" font-size="8">${fmt(max*q,1)}</text>`)});const rainPts=rows.map((r,i)=>`${x(i)},${y(r.intensity)}`).join(' '),thPts=rows.map((r,i)=>`${x(i)},${y(r.th)}`).join(' ');svg.insertAdjacentHTML('beforeend',`<polyline points="${rainPts}" fill="none" stroke="#155C63" stroke-width="2.5"/><polyline points="${thPts}" fill="none" stroke="#B9501D" stroke-width="2" stroke-dasharray="5 4"/>`);rows.forEach((r,i)=>svg.insertAdjacentHTML('beforeend',`<circle cx="${x(i)}" cy="${y(r.intensity)}" r="3" fill="#155C63"/><text x="${x(i)}" y="${h-8}" text-anchor="middle" fill="#84918D" font-size="8">${r.D}d</text>`));svg.insertAdjacentHTML('beforeend',`<text x="42" y="15" fill="#155C63" font-size="9">● model-grid intensity</text><text x="150" y="15" fill="#B9501D" font-size="9">— threshold</text>`)}
-function ring(state){const info=STATE_INFO[state],r=43,c=2*Math.PI*r,frac=state==='NODATA'?.14:info.lv/4;$('#riskRing').innerHTML=`<svg viewBox="0 0 116 116"><circle cx="58" cy="58" r="${r}" fill="none" stroke="#E3E9E7" stroke-width="10"/><circle cx="58" cy="58" r="${r}" fill="none" stroke="${COLORS[state]}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${frac*c} ${c}"/></svg><div class="ringCenter"><b style="color:${COLORS[state]}">${info.glyph}</b><span>${info.word}</span></div>`}
-function ringFeed(ok){const r=43,c=2*Math.PI*r,color=ok?'#247A4B':'#687873',frac=ok?.86:.14;$('#riskRing').innerHTML=`<svg viewBox="0 0 116 116"><circle cx="58" cy="58" r="${r}" fill="none" stroke="#E3E9E7" stroke-width="10"/><circle cx="58" cy="58" r="${r}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${frac*c} ${c}"/></svg><div class="ringCenter"><b style="color:${color}">${ok?'●':'?'}</b><span>${ok?'LIVE':'NO DATA'}</span></div>`}
-function ringDemo(){const r=43,c=2*Math.PI*r,p=DEMO_PHASES[APP.demo.i]||DEMO_PHASES[0],frac=(APP.demo.i+1)/DEMO_PHASES.length,color='#6B50A1';$('#riskRing').innerHTML=`<svg viewBox="0 0 116 116"><circle cx="58" cy="58" r="${r}" fill="none" stroke="#E3E9E7" stroke-width="10"/><circle cx="58" cy="58" r="${r}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${frac*c} ${c}"/></svg><div class="ringCenter"><b style="color:${color}">▶</b><span>DEMO</span></div>`}
-function isNE(){return APP.region==='ne'}
-
-function renderNav(){$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+APP.tab));$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===APP.tab));window.scrollTo({top:0,behavior:'auto'})}
-function go(tab){APP.tab=tab;renderNav()}
-function renderOverview(){
- const s=site(),wx=APP.siteWx[s.id],cur=wx?.current||{};
- const liveOk=!!(wx&&wx.ts&&Date.now()-wx.ts<3*3600000),demo=APP.mode==='demo';
- $('#overviewRainTag').textContent=demo?'SIMULATED':'LIVE';$('#overviewRainTag').className=demo?'tag sim':'tag live';$('#overviewRainCap').textContent=demo?'SIMULATED daily precipitation · scripted presentation scenario':'Daily precipitation from Open-Meteo; model-grid data, not a rain gauge.';
- $('#neLiveNotice').style.display=isNE()?'block':'none';
- $('#modeDemo').style.display='';
- if(isNE()&&demo){
-   const p=DEMO_PHASES[APP.demo.i]||DEMO_PHASES[0]; ringDemo();
-   $('#neModeTitle').textContent='Northeast presentation demo';$('#neModeTag').textContent='SIMULATED';$('#neModeTag').className='tag sim';
-   $('#neModeText').textContent='Everything changing in this mode is scripted presentation data. It demonstrates the workflow only; press LIVE to discard it and refetch the real APIs.';
-   $('#tagStateType').textContent='SIMULATED';$('#tagStateType').className='tag sim';
-   $('#overviewState').textContent='DEMO — '+p.name+' — '+s.name;
-   $('#overviewExplain').textContent=p.cap+' This is an illustrative operator scenario, not a Northeast landslide forecast.';
-   $('#actionTitle').textContent='Demo action';
-   $('#actionText').textContent=APP.demo.i>=5?'Illustrative escalation: verify the slope and hand the decision to the responsible authority.':APP.demo.i>=3?'Illustrative watch: inspect local conditions and the field sensor.':'Continue the scripted monitoring sequence.';
-   $('#tagRain').textContent='SIMULATED rainfall';$('#tagRain').className='tag sim';
-   $('#tagThreshold').style.display='none';
-   $('#tagRegionValidity').textContent='DEMO ONLY';$('#tagRegionValidity').className='tag sim';
-   $('#qRainLabel').textContent='Demo precip.';$('#qRain').textContent=fmt(p.rain,1)+' mm';$('#qRainSub').textContent='scripted presentation value';
-   $('#qAnteLabel').textContent='Demo 30-day rain';$('#qAnte').textContent=fmt(p.ante,0)+' mm';$('#qAnteSub').textContent='scripted antecedent context';
-   $('#qRatioLabel').textContent='Scenario phase';$('#qRatio').textContent=(APP.demo.i+1)+' / '+DEMO_PHASES.length;$('#qRatioSub').textContent=p.name;
-   $('#overviewSiteLabel').textContent=s.name+' · '+s.area;
-   $('#overviewLogic').innerHTML='<p><b>Demo logic:</b> a deterministic seven-step scenario changes simulated rain, a simulated local tilt sensor and a simulated earthquake-context count. It is designed to explain the data flow and human escalation path, not to estimate real Northeast landslide probability.</p><p>Press <b>LIVE</b> at any time to discard all demo values and request the real Open-Meteo and USGS feeds again.</p>';
-   if(wx?.daily)drawLine($('#overviewRainChart'),wx.daily.slice(-14),{labels:(wx.dates||[]).slice(-14),color:'#6B50A1'});else drawLine($('#overviewRainChart'),[]);
- }else if(isNE()){
-   $('#neModeTitle').textContent='Northeast live-data mode';$('#neModeTag').textContent='LIVE DATA ONLY';$('#neModeTag').className='tag live';
-   $('#neModeText').textContent='This view shows fetched weather-model data, the live earthquake catalogue and any real ThingSpeak sensor you connect. It does not calculate a Northeast landslide probability from the Himachal threshold.';
-   ringFeed(liveOk);
-   $('#tagStateType').textContent='LIVE FEEDS';$('#tagStateType').className='tag live';
-   $('#overviewState').textContent=(liveOk?'LIVE DATA':'NO LIVE DATA')+' — '+s.name;
-   $('#overviewExplain').textContent=liveOk?'Weather data for this Northeast reference point has been fetched successfully. It is a numerical weather-model grid estimate; this dashboard does not invent a Northeast landslide probability or warning state.':'The weather feed for this point is not available yet. Missing data stays visibly unknown; no safe/risk state is inferred.';
-   $('#actionTitle').textContent='Official landslide forecast';
-   $('#actionText').textContent='Use GSI Bhusanket / NLFC for official landslide bulletins. Connect a real field sensor here if you want local slope-movement data.';
-   $('#tagRain').textContent=liveOk?'LIVE model weather':'weather unavailable';$('#tagRain').className=liveOk?'tag live':'tag none';
-   $('#tagThreshold').style.display='none';
-   $('#tagRegionValidity').textContent='NO FABRICATED RISK';$('#tagRegionValidity').className='tag live';
-   $('#qRainLabel').textContent='Current precip.';$('#qRain').textContent=Number.isFinite(cur.precip)?fmt(cur.precip,2)+' mm':'—';$('#qRainSub').textContent='Open-Meteo current model interval';
-   $('#qAnteLabel').textContent='Past 30 days';$('#qAnte').textContent=wx?.daily?fmt(sumLast(wx.daily,30),1)+' mm':'—';$('#qAnteSub').textContent='daily model-grid totals';
-   $('#qRatioLabel').textContent='Feed age';$('#qRatio').textContent=wx?.ts?ageStr(Date.now()-wx.ts):'—';$('#qRatioSub').textContent='since last successful fetch';
-   $('#overviewSiteLabel').textContent=s.name+' · '+s.area;
-   $('#overviewLogic').innerHTML='<p><b>Northeast LIVE rule:</b> no Shimla rainfall threshold, synthetic classifier, or simulated landslide state is applied. The dashboard shows fetched weather, earthquake catalogue data, and a real connected field sensor only.</p><p>For an operational landslide forecast, use the Geological Survey of India National Landslide Forecasting Centre / Bhusanket service.</p>';
-   if(wx?.daily)drawLine($('#overviewRainChart'),wx.daily.slice(-14),{labels:(wx.dates||[]).slice(-14),color:'#155C63'});else drawLine($('#overviewRainChart'),[]);
- }else{
-   const st=stateForSite(s),info=STATE_INFO[st.state];ring(st.state);
-   $('#tagStateType').textContent=demo?'SIMULATED':'DERIVED';$('#tagStateType').className=demo?'tag sim':'tag derived';
-   $('#overviewState').textContent=(demo?'DEMO — ':'')+info.word+' — '+s.name;let exp='';if(st.state==='NODATA')exp='Usable rainfall data is not available yet. Missing data is shown as unknown, not safe.';else if(st.state==='NORMAL')exp='The Open-Meteo model-grid rainfall series is below the published threshold at all tested durations.';else if(st.state==='MONITOR')exp='The model-grid rainfall series crosses the threshold at at least one duration, but the stronger watch condition is not met.';else if(st.state==='WATCH')exp='The model-grid rainfall series has reached the watch condition. Check the slope and local drainage; this is not a landslide prediction.';else exp='The model-grid rainfall watch condition and the bound ground sensor are abnormal at the same time.';
-   $('#overviewExplain').textContent=(demo?'Scripted demo: ':'')+exp;$('#actionText').textContent=info.action;$('#actionTitle').textContent=st.state==='NODATA'?'Data check':st.state==='WARNING'?'Escalate':'Next step';$('#overviewSiteLabel').textContent=s.name;
-   $('#tagRain').textContent=demo?'SIMULATED rainfall':'LIVE model weather';$('#tagRain').className=demo?'tag sim':'tag live';$('#tagThreshold').style.display='';$('#tagRegionValidity').textContent=demo?'DEMO · HP logic':'HP-calibrated';$('#tagRegionValidity').className=demo?'tag sim':'tag ref';
-   $('#qRainLabel').textContent='Current precip.';$('#qRain').textContent=Number.isFinite(cur.precip)?fmt(cur.precip,2)+' mm':wx?.daily?fmt(wx.daily.at(-1),1)+' mm':'—';$('#qRainSub').textContent=demo?'scripted demo value':'Open-Meteo model grid';
-   $('#qAnteLabel').textContent='30-day rain';$('#qAnte').textContent=Number.isFinite(st.ante)?fmt(st.ante,0)+' mm':'—';$('#qAnteSub').textContent='antecedent total';
-   $('#qRatioLabel').textContent='Threshold';$('#qRatio').textContent=Number.isFinite(st.ratio)?fmt(st.ratio,2)+'×':'—';$('#qRatioSub').textContent='highest exceedance';
-   if(wx?.daily)drawLine($('#overviewRainChart'),wx.daily.slice(-14),{labels:(wx.dates||[]).slice(-14),color:demo?'#6B50A1':COLORS[st.state==='NODATA'?'NORMAL':st.state]});else drawLine($('#overviewRainChart'),[]);
-   $('#overviewLogic').innerHTML=st.rows.length?`<table><thead><tr><th>Duration</th><th>Modelled intensity</th><th>Threshold</th><th>Ratio</th></tr></thead><tbody>${st.rows.map(r=>`<tr><td>${r.D} day</td><td>${fmt(r.intensity,2)} mm/day</td><td>${fmt(r.th,2)} mm/day</td><td>${fmt(r.ratio,2)}×</td></tr>`).join('')}</tbody></table><p>30-day rainfall: <b>${fmt(st.ante,1)} mm</b>. Threshold domain: <b>${s.inDomain?'inside Shimla study area':'extrapolated outside Shimla'}</b>.</p>`:'No usable rainfall series yet.';
- }
- $('#qSensor').textContent=APP.sensor.connected?(APP.sensor.anomaly?'ALERT':'OK'):'—';$('#qSensor').style.color=APP.sensor.anomaly?COLORS.WARNING:APP.sensor.connected?COLORS.NORMAL:'';$('#qSensorSub').textContent=demo?'simulated demo sensor':APP.sensor.connected?(APP.sensor.siteId===s.id?'bound to this site':'bound to '+(APP.sites.find(x=>x.id===APP.sensor.siteId)?.name||'another site')):'not connected';$('#tagSensor').textContent=demo?'SIMULATED sensor':APP.sensor.connected?'SENSOR '+(APP.sensor.anomaly?'anomaly':'normal'):'sensor not connected';$('#tagSensor').className=demo?'tag sim':'tag sensor';
- $('#techTemp').textContent=Number.isFinite(cur.temp)?fmt(cur.temp,1)+'°C':'—';$('#techHum').textContent=Number.isFinite(cur.hum)?fmt(cur.hum,0)+'%':'—';$('#techWind').textContent=Number.isFinite(cur.wind)?fmt(cur.wind,1)+' km/h':'—';$('#techSoil').textContent=Number.isFinite(cur.soil)?fmt(cur.soil*100,0)+'%':'—';renderQuakes();renderDistricts();renderCombined()
-}
-function renderDistricts(){
- const areas=areaList(),cfg=regionCfg();if(APP.districtIdx>=areas.length)APP.districtIdx=0;if(APP.mode==='demo')$('#districtTime').textContent='SIMULATED · scripted scenario';else if(!APP.districtData)$('#districtTime').textContent='waiting for live weather';
- $('#areaRainTitle').textContent=isNE()?(APP.mode==='demo'?'Seven Sisters — simulated capital points':'Seven Sisters — live capital weather points'):`${areas.length} ${cfg.plural} — precipitation today`;
- $('#areaCompareTitle').textContent=isNE()?(APP.mode==='demo'?'Simulated precipitation comparison':'Current precipitation comparison'):'District comparison';$('#btnNearestDistrict').textContent='📍 Nearest '+cfg.unit;
- const strip=$('#districtStrip');strip.innerHTML='';
- areas.forEach((d,i)=>{const st=APP.districtData?districtStats(i):{rain:NaN,currentPrecip:NaN};const v=isNE()?st.currentPrecip:st.rain;const b=document.createElement('button');b.className='district'+(i===APP.districtIdx?' active':'');const sw=Number.isFinite(v)?(APP.mode==='demo'?'#6B50A1':'#155C63'):'#AAB5B1';b.innerHTML=`<div class="sw" style="background:${sw}"></div><div class="nm">${d.name}</div><div class="val">${Number.isFinite(v)?fmt(v,isNE()?2:0)+' mm':'—'}</div>`;b.onclick=()=>{APP.districtIdx=i;renderDistricts()};strip.appendChild(b)});
- const d=areas[APP.districtIdx],st=APP.districtData?districtStats(APP.districtIdx):{temp:NaN,rain:NaN,currentPrecip:NaN,sum3:NaN,cond:''};
- $('#dName').textContent=d.name+(d.capital?' · '+d.capital:'');$('#dNote').textContent=(APP.mode==='demo'?'SIMULATED DEMO · ':'')+(st.cond?st.cond+' · ':'')+(isNE()?'capital reference point only · ':'')+d.note;
- $('#dTemp').textContent=Number.isFinite(st.temp)?fmt(st.temp,1)+'°C':'—';$('#dRainLabel').textContent=isNE()?'Current precip.':'Rain today';$('#d3Label').textContent='Past 3 days';$('#dRain').textContent=Number.isFinite(isNE()?st.currentPrecip:st.rain)?fmt(isNE()?st.currentPrecip:st.rain,isNE()?2:1)+' mm':'—';$('#d3').textContent=Number.isFinite(st.sum3)?fmt(st.sum3,1)+' mm':'—';
- const stats=areas.map((a,i)=>({d:a,...(APP.districtData?districtStats(i):{rain:NaN,currentPrecip:NaN})}));stats.forEach(x=>x.display=isNE()?x.currentPrecip:x.rain);stats.sort((a,b)=>(Number.isFinite(b.display)?b.display:-1)-(Number.isFinite(a.display)?a.display:-1));const max=Math.max(1,...stats.map(x=>Number.isFinite(x.display)?x.display:0));
- $('#districtBars').innerHTML=stats.map(x=>`<div class="barrow"><span class="lab">${x.d.name}</span><div class="track"><div class="fill" style="width:${Number.isFinite(x.display)?Math.max(3,x.display/max*100):0}%;background:${Number.isFinite(x.display)?(APP.mode==='demo'?'#6B50A1':'#155C63'):'#AAB5B1'}"></div></div><span class="n">${Number.isFinite(x.display)?fmt(x.display,isNE()?2:0)+'mm':'—'}</span></div>`).join('');
- const ml=$('#mlCard');if(ml)ml.style.display=isNE()?'none':'';if(!isNE()){const p=Number.isFinite(st.rain)?mlPredict(st.rain,Number.isFinite(st.sum3)?st.sum3:0,d.exposure||0):NaN;if($('#mlPct')){$('#mlPct').textContent=Number.isFinite(p)?fmt(p*100,1)+'%':'—';$('#mlBar').style.width=Number.isFinite(p)?Math.max(2,p*100)+'%':'0'}}
-}
-
-function renderSites(){
- const list=$('#siteList'),visible=regionSites();list.innerHTML='';
- visible.forEach(s=>{const wx=APP.siteWx[s.id],live=!!(wx&&wx.ts&&Date.now()-wx.ts<3*3600000),demo=APP.mode==='demo';const st=isNE()?(demo?'DEMO':live?'LIVE':'NO DATA'):stateForSite(s).state,inf=isNE()?{glyph:demo?'▶':live?'●':'?',word:demo?'DEMO':live?'LIVE':'NO DATA'}:STATE_INFO[st],color=isNE()?(demo?'#6B50A1':live?'#247A4B':'#687873'):COLORS[st];const b=document.createElement('button');b.className='sitebtn'+(s.id===APP.siteId?' active':'');b.innerHTML=`<span class="stateDot" style="color:${color};background:${color}12">${inf.glyph}</span><span><span class="nm">${s.name}</span><span class="ds">${s.area||'custom coordinate'}</span></span><span class="stateWord" style="color:${color}">${inf.word}</span>`;b.onclick=()=>selectSite(s.id);list.appendChild(b)});
- $('#siteCount').textContent=visible.length+' sites';const s=site(),wx=APP.siteWx[s.id],live=!!(wx&&wx.ts&&Date.now()-wx.ts<3*3600000),st=stateForSite(s),inf=STATE_INFO[st.state];
- if(isNE()){
-   const demo=APP.mode==='demo',p=DEMO_PHASES[APP.demo.i]||DEMO_PHASES[0];
-   $('#siteIntro').textContent=demo?'Presentation demo: select a Northeast reference point to show the scripted workflow. All values are simulated until you return to LIVE.':'Pick a Northeast reference point to see live fetched weather. These capital points are not statewide landslide measurements; add a real coordinate for a specific slope.';
-   $('#siteStateTag').textContent=demo?'SIMULATED':'LIVE FEED';$('#siteStateTag').className=demo?'tag sim':'tag live';const lad=$('#siteLadder');lad.className='ladder siteState '+(demo?'WATCH':live?'NORMAL':'NODATA');[...lad.children].forEach((x,i)=>x.classList.toggle('on',demo?i<=Math.min(3,Math.floor(APP.demo.i/2)):live&&i<1));
-   $('#siteStateName').textContent=demo?'DEMO — '+p.name+' — '+s.name:(live?'LIVE DATA':'NO LIVE DATA')+' — '+s.name;$('#siteStateName').style.color=demo?'#6B50A1':live?'#247A4B':'#687873';$('#siteStateText').textContent=demo?p.cap+' Scripted presentation scenario only.':(s.basis||'Live weather reference point.')+' No Northeast landslide risk level is generated here.';$('#siteAge').textContent=demo?'simulated now':wx?.ts?'weather feed '+ageStr(Date.now()-wx.ts):'weather feed not loaded';
-   const cur=wx?.current||{},last30=wx?.daily?sumLast(wx.daily,30):NaN;$('#siteEvidence').innerHTML=demo?`<div class="evidence"><div class="k">Simulated rainfall</div><div class="v">${fmt(p.rain,1)} mm</div><div class="why">Scripted demo value, not an API reading.</div></div><div class="evidence"><div class="k">Simulated antecedent rain</div><div class="v">${fmt(p.ante,0)} mm</div><div class="why">Used only to tell the presentation story.</div></div><div class="evidence"><div class="k">Scenario phase</div><div class="v">${p.name}</div><div class="why">Deterministic phase ${APP.demo.i+1} of ${DEMO_PHASES.length}.</div></div><div class="evidence"><div class="k">Ground sensor</div><div class="v">${APP.sensor.anomaly?'SIMULATED ANOMALY':'SIMULATED NORMAL'}</div><div class="why">Scripted sensor trace; not ThingSpeak.</div></div>`:`<div class="evidence"><div class="k">Current precipitation</div><div class="v">${Number.isFinite(cur.precip)?fmt(cur.precip,2)+' mm':'—'}</div><div class="why">Open-Meteo current numerical-model interval.</div></div><div class="evidence"><div class="k">Past 30 days</div><div class="v">${Number.isFinite(last30)?fmt(last30,1)+' mm':'—'}</div><div class="why">Daily model-grid precipitation totals.</div></div><div class="evidence"><div class="k">Weather feed</div><div class="v">${live?'LIVE':'NO DATA'}</div><div class="why">No value is substituted when the feed fails.</div></div><div class="evidence"><div class="k">Ground sensor</div><div class="v">${APP.sensor.connected&&APP.sensor.siteId===s.id?(APP.sensor.anomaly?'ANOMALY':'CONNECTED'):'—'}</div><div class="why">Real ThingSpeak data only when you connect a public channel.</div></div>`;
-   $('#thresholdCard').style.display='none';$('#siteRainCard').style.gridColumn='1 / -1';$('#addSiteMsg').textContent=demo?'Custom-site editing is still available, but DEMO values remain scripted. Return to LIVE to fetch the coordinate from Open-Meteo.':'Add a real latitude / longitude. Northeast LIVE mode will fetch weather for that coordinate; it will not invent a landslide risk score.';
-   if(wx?.daily){drawLine($('#siteRainChart'),wx.daily,{labels:wx.dates,color:demo?'#6B50A1':'#155C63'});$('#siteRainCap').textContent=demo?'SIMULATED daily precipitation · presentation scenario':'Open-Meteo model-grid daily precipitation · fetched '+ageStr(Date.now()-wx.ts)}else drawLine($('#siteRainChart'),[]);
- }else{
-   $('#siteIntro').textContent='Pick a site to see rainfall screening. You can also add your own coordinate; custom sites are saved in this browser.';$('#siteStateTag').textContent='DERIVED';$('#siteStateTag').className='tag derived';const lad=$('#siteLadder');lad.className='ladder siteState '+st.state;[...lad.children].forEach((x,i)=>x.classList.toggle('on',i<inf.lv));$('#siteStateName').textContent=inf.word+' — '+s.name;$('#siteStateName').style.color=COLORS[st.state];const validity=s.inDomain?'Threshold is used inside its derivation area.':'Threshold use here is an extrapolation outside Shimla.';$('#siteStateText').textContent=(s.basis||'Custom monitoring point.')+' '+validity;$('#siteAge').textContent=wx?.ts?'rain data '+ageStr(Date.now()-wx.ts):'rain data not loaded';const latest=wx?.daily?.at(-1),maxR=Number.isFinite(st.ratio)?st.ratio:NaN;$('#siteEvidence').innerHTML=`<div class="evidence"><div class="k">Today’s model total</div><div class="v">${Number.isFinite(latest)?fmt(latest,1)+' mm':'—'}</div><div class="why">Open-Meteo model-grid daily precipitation; not a rain gauge.</div></div><div class="evidence"><div class="k">Highest threshold ratio</div><div class="v">${Number.isFinite(maxR)?fmt(maxR,2)+'×':'—'}</div><div class="why">Across 1, 2, 3, 5, 7 and 10-day windows.</div></div><div class="evidence"><div class="k">30-day rainfall</div><div class="v">${Number.isFinite(st.ante)?fmt(st.ante,1)+' mm':'—'}</div><div class="why">Watch modifier: ${THRESH.anteMm} mm.</div></div><div class="evidence"><div class="k">Ground sensor</div><div class="v">${APP.sensor.connected&&APP.sensor.siteId===s.id?(APP.sensor.anomaly?'ANOMALY':'NORMAL'):'—'}</div><div class="why">Only a sensor bound to this site can confirm a warning.</div></div>`;$('#thresholdCard').style.display='';$('#siteRainCard').style.gridColumn='';$('#addSiteMsg').textContent='Example: enter any coordinate. The same rainfall screen can be calculated there, but the published threshold is calibrated for Shimla and is an extrapolation elsewhere.';if(wx?.daily){drawLine($('#siteRainChart'),wx.daily,{labels:wx.dates,color:COLORS[st.state==='NODATA'?'NORMAL':st.state]});drawThreshold($('#thresholdChart'),st.rows);$('#siteRainCap').textContent='Open-Meteo model-grid daily precipitation · '+(wx.ts?ageStr(Date.now()-wx.ts):'');$('#thresholdCap').textContent=Number.isFinite(st.ratio)?'Maximum ratio '+fmt(st.ratio,2)+'× · '+(s.inDomain?'inside derivation area':'extrapolated outside Shimla'):''}else{drawLine($('#siteRainChart'),[]);drawThreshold($('#thresholdChart'),[])}
- }
- renderSiteMap();populateSensorSites();renderOverview();
-}
-
-function renderSiteMap(){const svg=$('#siteMap'),sites=regionSites();if(!sites.length){svg.innerHTML='';return}let minLat=Math.min(...sites.map(s=>s.lat)),maxLat=Math.max(...sites.map(s=>s.lat)),minLon=Math.min(...sites.map(s=>s.lon)),maxLon=Math.max(...sites.map(s=>s.lon));const latPad=Math.max(.45,(maxLat-minLat)*.18),lonPad=Math.max(.55,(maxLon-minLon)*.15);minLat-=latPad;maxLat+=latPad;minLon-=lonPad;maxLon+=lonPad;const x=lon=>50+(lon-minLon)/Math.max(.01,maxLon-minLon)*660,y=lat=>260-(lat-minLat)/Math.max(.01,maxLat-minLat)*220;svg.setAttribute('aria-label','Schematic map of monitored '+regionCfg().label+' sites');svg.innerHTML=`<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4F7F5"/><stop offset="1" stop-color="#E7F0ED"/></linearGradient></defs><rect x="0" y="0" width="760" height="300" rx="14" fill="url(#g)"/><path d="M20 248 Q110 175 190 220 T350 190 T520 210 T740 155" fill="none" stroke="#C9D8D3" stroke-width="20" opacity=".35"/><path d="M20 260 Q130 202 220 235 T410 205 T590 230 T740 185" fill="none" stroke="#D8E4E0" stroke-width="10" opacity=".45"/>`;sites.forEach(s=>{const sel=s.id===APP.siteId,wx=APP.siteWx[s.id],live=!!(wx&&wx.ts&&Date.now()-wx.ts<3*3600000),color=isNE()?(APP.mode==='demo'?'#6B50A1':live?'#247A4B':'#687873'):COLORS[stateForSite(s).state];svg.insertAdjacentHTML('beforeend',`<g data-site="${s.id}" style="cursor:pointer"><circle cx="${x(s.lon)}" cy="${y(s.lat)}" r="${sel?9:6}" fill="${sel?color:'#fff'}" stroke="${color}" stroke-width="2"/><text x="${x(s.lon)+10}" y="${y(s.lat)+4}" font-size="9.5" fill="#455B55">${s.name}</text></g>`)});svg.querySelectorAll('[data-site]').forEach(g=>g.addEventListener('click',()=>selectSite(g.dataset.site)))}
-
-function populateSensorSites(){const sel=$('#sensorSite'),val=APP.sensor.siteId,sites=regionSites().slice(),bound=APP.sites.find(s=>s.id===val);if(bound&&!sites.some(s=>s.id===bound.id))sites.unshift(bound);sel.innerHTML=sites.map(s=>`<option value="${s.id}">${s.name}${s.region!==APP.region?' (bound · other region)':''}</option>`).join('');sel.value=sites.some(s=>s.id===val)?val:APP.siteId}
-function renderSensor(){const s=APP.sensor,demo=APP.mode==='demo';$('#sLatest').textContent=s.samples.length?fmt(s.samples.at(-1),3):'—';$('#sBaseline').textContent=Number.isFinite(s.baseline)?fmt(s.baseline,3):'—';$('#sNoise').textContent=Number.isFinite(s.noise)?fmt(s.noise,3):'—';$('#sDev').textContent=Number.isFinite(s.deviation)?fmt(s.deviation,3):'—';$('#sensorAge').textContent=demo?'SIMULATED · current demo phase':s.lastTs?'newest '+ageStr(Date.now()-s.lastTs):'—';drawLine($('#sensorChart'),s.samples.slice(-50),{labels:[],color:demo?'#6B50A1':s.anomaly?COLORS.WARNING:'#6B50A1'});const hg=$('#healthGlyph'),title=$('#healthTitle'),text=$('#healthText'),box=$('#sensorHealth');if(demo){hg.textContent=s.anomaly?'!':'▶';hg.style.color='#6B50A1';title.textContent=s.anomaly?'Simulated sensor anomaly':'Simulated sensor baseline';text.textContent='Scripted demo values only — no ThingSpeak channel is being read in DEMO mode.';box.style.background='var(--violetWash)'}else if(!s.connected){hg.textContent='?';hg.style.color='#687873';title.textContent='Not connected';text.textContent='No field instrument is contributing to the state.';box.style.borderColor='';box.style.background=''}else if(s.samples.length<10){hg.textContent='…';hg.style.color='#9B6B11';title.textContent='Building baseline';text.textContent=s.samples.length+'/10 samples collected.';box.style.background='var(--amberWash)'}else if(s.anomaly){hg.textContent='!';hg.style.color='#AA2924';title.textContent='Sustained anomaly';text.textContent='Three recent samples exceed the measured noise band.';box.style.background='var(--redWash)'}else{hg.textContent='✓';hg.style.color='#247A4B';title.textContent='Instrument normal';text.textContent='No sustained deviation outside its recent noise band.';box.style.background='var(--greenWash)'}$('#btnConnectSensor').disabled=demo;$('#btnDisconnectSensor').disabled=demo||!s.channel;renderCombined();renderOverview()}
-function analyseSensor(){const s=APP.sensor,a=s.samples.filter(Number.isFinite);if(!a.length){s.baseline=s.noise=s.deviation=NaN;s.anomaly=false;return}const baseWindow=a.slice(0,Math.max(5,a.length-3));s.baseline=median(baseWindow);const robust=mad(baseWindow)*1.4826;s.noise=Math.max(Number.isFinite(robust)?robust:0,0.02);s.deviation=Math.abs(a.at(-1)-s.baseline);const last3=a.slice(-3);s.anomaly=a.length>=10&&last3.length===3&&last3.every(v=>Math.abs(v-s.baseline)>3*s.noise)}
-function renderCombined(){const s=APP.sensor,bound=s.connected&&s.siteId===APP.siteId;if(isNE()){if(APP.mode==='demo'){const p=DEMO_PHASES[APP.demo.i]||DEMO_PHASES[0];$('#pipeRainV').textContent='SIM '+p.name;$('#pipeSensorV').textContent=s.anomaly?'SIM anomaly':'SIM normal';$('#pipeRain').className='pipebox'+(APP.demo.i>=3?' watch':'');$('#pipeSensor').className='pipebox'+(s.anomaly?' hot':'');$('#pipeResult').className='pipebox'+(APP.demo.i>=5?' hot':APP.demo.i>=3?' watch':'');$('#pipeResultV').textContent=APP.demo.i>=5?'DEMO ESCALATE':APP.demo.i>=3?'DEMO WATCH':'DEMO MONITOR';$('#pipeNote').textContent='Scripted presentation workflow only. No Northeast operational warning is being calculated.';}else{const wx=APP.siteWx[APP.siteId],live=!!(wx&&wx.ts&&Date.now()-wx.ts<3*3600000);$('#pipeRainV').textContent=live?'LIVE':'NO DATA';$('#pipeSensorV').textContent=!bound?'Not bound':s.anomaly?'Anomaly':'Connected';$('#pipeRain').className='pipebox';$('#pipeSensor').className='pipebox'+(bound&&s.anomaly?' hot':'');$('#pipeResult').className='pipebox';$('#pipeResultV').textContent='HUMAN CHECK';$('#pipeNote').textContent='Northeast LIVE mode does not turn these feeds into an automatic landslide warning. Use official GSI bulletins and field verification.';}renderResponse();return}const st=stateForSite(site()).state;$('#pipeRainV').textContent=st;$('#pipeSensorV').textContent=!bound?'Not bound':s.anomaly?'Anomaly':'Normal';let result='NORMAL',cls='';if(st==='WARNING'){result='ESCALATE';cls='hot'}else if(st==='WATCH'||st==='MONITOR'){result='WATCH';cls='watch'}else if(st==='NODATA'){result='NO DATA'}$('#pipeRain').className='pipebox'+((st==='WATCH'||st==='WARNING')?' watch':'');$('#pipeSensor').className='pipebox'+(bound&&s.anomaly?' hot':'');$('#pipeResult').className='pipebox'+(cls?' '+cls:'');$('#pipeResultV').textContent=result;$('#pipeNote').textContent=bound?'Ground sensor is bound to '+site().name+'.':'Connected sensor does not apply to this selected site.';if(APP.lastCombined!==result){if(APP.lastCombined!==null)logEvent('state','Combined state changed to '+result,site().name);APP.lastCombined=result}renderResponse()}
-function renderResponse(){if(isNE()){if(APP.mode==='demo'){const i=APP.demo.i;$('#resp1').className='pipebox'+(i>=2?' watch':'');$('#resp2').className='pipebox'+(i>=4?' hot':'');$('#resp3').className='pipebox'+(i>=5?' hot':'');$('#resp1 .v').textContent='SIM rain trend';$('#resp2 .v').textContent='SIM field sensor';$('#resp3 .v').textContent=i>=5?'DEMO escalation':'Human decision';$('#roadCard').style.display='none';$('#btnTestChime').style.display=''}else{$('#resp1').className='pipebox';$('#resp2').className='pipebox';$('#resp3').className='pipebox';$('#resp1 .v').textContent='Read live feeds';$('#resp2 .v').textContent='Check real sensor + field';$('#resp3 .v').textContent='Official authority decides';$('#roadCard').style.display='none';$('#btnTestChime').style.display='none'}}else{const st=stateForSite(site()).state;$('#resp1').className='pipebox'+((st==='MONITOR'||st==='WATCH'||st==='WARNING')?' watch':'');$('#resp2').className='pipebox'+(st==='WARNING'?' hot':'');$('#resp3').className='pipebox'+(st==='WARNING'?' hot':'');$('#resp1 .v').textContent='Rain crosses threshold';$('#resp2 .v').textContent='Check local sensor + field';$('#resp3 .v').textContent='Human authority decides action';$('#roadCard').style.display='';$('#btnTestChime').style.display=''}renderAlert();if(!isNE())renderRoad()}
-function renderAlert(){const s=site(),lang=APP.lang;if(isNE()){if(APP.mode==='demo'){const p=DEMO_PHASES[APP.demo.i]||DEMO_PHASES[0];let body;if(lang==='hi'){body=`डेमो केवल प्रस्तुति के लिए: ${s.name} पर चरण “${p.name}” दिखाया जा रहा है। वर्षा और सेंसर मान कृत्रिम हैं। यह सरकारी चेतावनी या वास्तविक भूस्खलन पूर्वानुमान नहीं है।`}else if(lang==='local'){body='DEMO ONLY. Local-language emergency wording must be community-verified before deployment; this prototype does not fabricate it.'}else{body=`DEMO ONLY: ${s.name} is in the scripted “${p.name}” phase. Rainfall and sensor values are simulated to demonstrate the workflow. This is not a real Northeast landslide forecast or government warning.`}$('#alertPreview').innerHTML=`<div class="msg">${body}</div><div class="note">SIMULATED presentation wording · press LIVE for real feeds</div>`;return}const wx=APP.siteWx[s.id],live=!!(wx&&wx.ts&&Date.now()-wx.ts<3*3600000),sensor=APP.sensor.connected&&APP.sensor.siteId===s.id?(APP.sensor.anomaly?'sensor anomaly detected':'sensor connected'):'no field sensor connected';let body;if(lang==='hi'){body=`HIMGAURAV लाइव डेटा: ${s.name} पर मौसम फ़ीड ${live?'उपलब्ध है':'उपलब्ध नहीं है'} और ${sensor==='no field sensor connected'?'कोई फील्ड सेंसर जुड़ा नहीं है':'फील्ड सेंसर जुड़ा है'}। इस डैशबोर्ड से उत्तर-पूर्व भारत के लिए कोई कृत्रिम भूस्खलन जोखिम स्तर नहीं बनाया जाता। आधिकारिक पूर्वानुमान के लिए GSI Bhusanket / NLFC देखें।`}else if(lang==='local'){body='Local-language alert text is not fabricated. Add a community-verified translation before deployment.'}else{body=`HIMGAURAV live-data status: ${s.name} weather feed is ${live?'available':'unavailable'}; ${sensor}. No Northeast landslide probability or warning level is generated by this dashboard. Check GSI Bhusanket / NLFC and the responsible local authority for official landslide information.`}$('#alertPreview').innerHTML=`<div class="msg">${body}</div><div class="note">Live-data status only · not an official government warning · no simulated Northeast risk</div>`;return}const st=stateForSite(s).state;let body;if(lang==='hi'){body=`HIMGAURAV प्रोटोटाइप सूचना: ${s.name} पर स्थिति ${STATE_INFO[st].word} है। ${st==='WARNING'?'वर्षा स्क्रीन और स्थानीय सेंसर दोनों असामान्य हैं। जिम्मेदार अधिकारी स्थल की पुष्टि करें।':st==='WATCH'?'वर्षा सीमा वॉच स्तर तक पहुँची है। स्थानीय ढलान और जल निकासी की जाँच करें।':'निगरानी जारी रखें।'}`}else if(lang==='local'){body='Local-language alert is intentionally not fabricated. Community-verified translations should be added before deployment.'}else{body=`HIMGAURAV prototype advisory: ${s.name} is ${STATE_INFO[st].word}. ${st==='WARNING'?'Rainfall watch conditions and the local sensor are both abnormal. A responsible operator should verify the site and decide escalation.':st==='WATCH'?'Rainfall has reached the watch condition. Inspect the slope and drainage; this is not a prediction of failure.':'Continue monitoring. No public emergency alert is being issued by this dashboard.'}`}$('#alertPreview').innerHTML=`<div class="msg">${body}</div><div class="note">${APP.mode==='demo'?'SIMULATED demo wording':'Prototype wording only'} · not an official government warning</div>`}
-function renderRoad(){const svg=$('#roadSvg'),blocked=APP.roadBlocked;svg.innerHTML=`<rect x="0" y="0" width="560" height="245" rx="14" fill="#F8FAF9"/><path d="M70 120 H210" stroke="#78918A" stroke-width="7" stroke-linecap="round"/><path d="M250 120 H365" stroke="${blocked?'#AA2924':'#78918A'}" stroke-width="7" stroke-linecap="round" ${blocked?'stroke-dasharray="8 7"':''}/><path d="M405 120 H500" stroke="${blocked?'#C9D2CF':'#78918A'}" stroke-width="7" stroke-linecap="round"/><path d="M230 140 Q285 200 365 185" stroke="#B8C9C3" stroke-width="4" fill="none" stroke-dasharray="6 5"/><g><circle cx="70" cy="120" r="18" fill="#E5F1F1" stroke="#155C63"/><text x="70" y="124" text-anchor="middle" font-size="9" fill="#155C63">HQ</text><text x="70" y="154" text-anchor="middle" font-size="10" fill="#5C6B66">control</text></g><g><circle cx="230" cy="120" r="19" fill="#fff" stroke="#78918A"/><text x="230" y="124" text-anchor="middle" font-size="9">J1</text><text x="230" y="154" text-anchor="middle" font-size="10" fill="#5C6B66">junction</text></g><g id="blockSeg" style="cursor:pointer"><rect x="346" y="92" width="78" height="56" rx="12" fill="${blocked?'#FBE6E4':'#FCEADF'}" stroke="${blocked?'#AA2924':'#B9501D'}"/><text x="385" y="116" text-anchor="middle" font-size="10" font-weight="700" fill="${blocked?'#AA2924':'#B9501D'}">SLOPE</text><text x="385" y="132" text-anchor="middle" font-size="9" fill="#5C6B66">${blocked?'blocked':'tap to block'}</text></g><g><circle cx="500" cy="120" r="20" fill="${blocked?'#EDF1F0':'#E7F4EC'}" stroke="${blocked?'#A9B5B1':'#247A4B'}"/><text x="500" y="124" text-anchor="middle" font-size="9">V</text><text x="500" y="154" text-anchor="middle" font-size="10" fill="#5C6B66">village</text></g><text x="294" y="214" text-anchor="middle" font-size="9" fill="#84918D">dashed lower path = possible alternate route in graph logic</text>`;$('#roadCap').textContent=blocked?'Illustrative blockage active: the main route to the village is cut; the graph should now test whether an alternate route remains. Tap the slope again to reset.':'Tap the slope segment to simulate a blockage. This is a logic demo, not live road status.';$('#blockSeg').onclick=()=>{APP.roadBlocked=!APP.roadBlocked;renderRoad();logEvent('response',APP.roadBlocked?'Illustrative road segment blocked':'Illustrative road segment restored','response demo')}}
-function renderLog(){const ul=$('#logList');if(!ul)return;ul.innerHTML=APP.logs.length?APP.logs.map(e=>`<li><time>${new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(e.t))}</time><div><b>${e.text}</b>${e.src?`<div class="src">${e.src}</div>`:''}</div><span class="kind">${e.kind.toUpperCase()}</span></li>`).join(''):'<li><time>—</time><div><b>No events yet.</b></div></li>'}
-function renderQuakes(){if(!$('#quakeBars'))return;const feats=APP.quakes||[],demo=APP.mode==='demo';$('#quakeCount').textContent=demo?feats.length+' simulated events':feats.length+(feats.length>=200?'+':'')+' shown · USGS';if(!feats.length){$('#quakeBars').innerHTML='';$('#quakeNote').textContent=demo?'No simulated seismic events in this demo phase.':'No magnitude ≥2.5 events returned for the '+regionCfg().short+' regional box in this 90-day query, or the feed is not loaded yet.';return}const max=Math.max(2.5,...feats.map(f=>Number(f.properties?.mag)||0));$('#quakeBars').innerHTML=feats.slice(0,10).map(f=>{const p=f.properties||{},m=Number(p.mag)||0,pct=Math.max(5,m/max*100),date=p.time?new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',timeZone:'Asia/Kolkata'}).format(new Date(p.time)):'—';return `<div class="barrow"><span class="lab">${date} · M${fmt(m,1)}</span><div class="track"><div class="fill" style="width:${pct}%;background:${demo?'#6B50A1':m>=4.5?'#B9501D':m>=3.5?'#9B6B11':'#155C63'}"></div></div><span class="n">${String(p.place||'region').slice(0,16)}</span></div>`}).join('');$('#quakeNote').textContent=demo?'SIMULATED catalogue context for presentation only. These events did not come from USGS.':isNE()?'Near-real-time USGS catalogue context only. For the official Indian earthquake list, use the NCS link above. No earthquake value is converted into a Northeast landslide risk score.':'Context only. Earthquakes are not blended into the rainfall threshold state.'}
-function renderSources(){$('#sourceList').innerHTML=SOURCES.map(s=>`<div class="sourceItem"><a href="${s.l}" target="_blank" rel="noopener noreferrer">${s.t} ↗</a><div class="meta">${s.m}</div><div class="used">Used for: ${s.u}</div></div>`).join('')}
-
-async function fetchDistricts(user=false){if(APP.mode==='demo')return;const areas=areaList(),cfg=regionCfg();setChip('#chipRain','', 'rain: fetching');try{const lats=areas.map(d=>d.lat).join(','),lons=areas.map(d=>d.lon).join(',');const url=`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,precipitation,weather_code&daily=precipitation_sum&past_days=3&forecast_days=3&timezone=Asia%2FKolkata`;const r=await fetch(url);if(!r.ok)throw Error(r.status);const j=await r.json();APP.districtData=Array.isArray(j)?j:[j];if(APP.districtData.length!==areas.length)throw Error('unexpected batch shape');}catch(batchErr){try{const results=await Promise.allSettled(areas.map(async d=>{const u=`https://api.open-meteo.com/v1/forecast?latitude=${d.lat}&longitude=${d.lon}&current=temperature_2m,precipitation,weather_code&daily=precipitation_sum&past_days=3&forecast_days=3&timezone=Asia%2FKolkata`;const r=await fetch(u);if(!r.ok)throw Error(r.status);return r.json()}));if(!results.some(x=>x.status==='fulfilled'))throw batchErr;APP.districtData=results.map(x=>x.status==='fulfilled'?x.value:{});}catch(e){setChip('#chipRain','warn','rain: regional feed offline');logEvent('feed',cfg.label+' rainfall fetch failed',String(e));renderDistricts();return}}setChip('#chipRain','live','rain: live');$('#districtTime').textContent=(APP.region==='ne'?'7 capital points · ':'')+'fetched '+IST_TIME().slice(0,5)+' IST';if(user)toast(cfg.label+' rainfall refreshed.');logEvent('feed',cfg.label+' rainfall updated','Open-Meteo');renderDistricts()}
-
-async function fetchSiteWeather(s,user=false){if(APP.mode==='demo')return;try{const url=`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&hourly=soil_moisture_0_to_7cm&daily=precipitation_sum&past_days=30&forecast_days=1&timezone=Asia%2FKolkata`;const r=await fetch(url);if(!r.ok)throw Error(r.status);const j=await r.json();const soilArr=j.hourly?.soil_moisture_0_to_7cm||[],soil=soilArr.length?Number(soilArr.at(-1)):NaN;APP.siteWx[s.id]={daily:(j.daily?.precipitation_sum||[]).map(v=>Number(v)||0),dates:j.daily?.time||[],current:{temp:Number(j.current?.temperature_2m),hum:Number(j.current?.relative_humidity_2m),wind:Number(j.current?.wind_speed_10m),precip:Number(j.current?.precipitation),soil},sourceTime:j.current?.time||'',sourceInterval:Number(j.current?.interval)||NaN,ts:Date.now()};setChip('#chipRain','live','rain: live');if(user)toast('Site rainfall refreshed.');logEvent('feed','Site rainfall updated',s.name+' · Open-Meteo')}catch(e){setChip('#chipRain','warn','rain: site feed offline');logEvent('feed','Site rainfall fetch failed',s.name+' · '+e)}renderSites()}
-async function fetchAllSites(){if(APP.mode!=='live')return;await Promise.allSettled(regionSites().map(s=>fetchSiteWeather(s,false)))}
-async function fetchQuakes(user=false){if(APP.mode==='demo')return;const q=regionCfg().quake;setChip('#chipQuake','', 'seismic: fetching');try{const start=new Date(Date.now()-90*86400000).toISOString().slice(0,10);const url=`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${start}&minlatitude=${q.minLat}&maxlatitude=${q.maxLat}&minlongitude=${q.minLon}&maxlongitude=${q.maxLon}&minmagnitude=2.5&orderby=time&limit=200`;const r=await fetch(url);if(!r.ok)throw Error(r.status);const j=await r.json();APP.quakes=j.features||[];setChip('#chipQuake','live','seismic: '+APP.quakes.length+(APP.quakes.length>=200?'+':'')+' shown / 90d');if(user)toast('Seismic context refreshed.');logEvent('feed','Seismic catalogue updated',APP.quakes.length+' events · '+regionCfg().short+' · USGS')}catch(e){setChip('#chipQuake','warn','seismic: offline');logEvent('feed','Seismic fetch failed',String(e))}}
-
-async function connectSensor(){const ch=$('#tsChannel').value.trim(),field=$('#tsField').value.trim()||'1';if(!/^\d+$/.test(ch)){toast('Enter a numeric public ThingSpeak channel ID.');return}if(!/^[1-8]$/.test(field)){toast('ThingSpeak field must be a number from 1 to 8.');return}APP.sensor.channel=ch;APP.sensor.field=field;APP.sensor.siteId=$('#sensorSite').value||APP.siteId;APP.sensor.samples=[];APP.sensor.times=[];APP.sensor.connected=false;clearInterval(APP.timers.sensor);await pollSensor();if(APP.mode==='live')APP.timers.sensor=setInterval(pollSensor,15000);$('#btnDisconnectSensor').disabled=false;logEvent('sensor','Sensor configured','ThingSpeak channel '+ch+' · field '+field+' · '+(APP.sites.find(s=>s.id===APP.sensor.siteId)?.name||APP.sensor.siteId));renderSensor()}
-async function pollSensor(){if(APP.mode==='demo'||!APP.sensor.channel)return;try{const r=await fetch(`https://api.thingspeak.com/channels/${APP.sensor.channel}/feeds.json?results=80`);if(!r.ok)throw Error(r.status);const j=await r.json(),key='field'+APP.sensor.field;const pairs=(j.feeds||[]).map(f=>({v:Number(f[key]),t:new Date(f.created_at).getTime()})).filter(x=>Number.isFinite(x.v)&&Number.isFinite(x.t));if(!pairs.length)throw Error('no numeric samples');APP.sensor.samples=pairs.map(x=>x.v);APP.sensor.times=pairs.map(x=>x.t);APP.sensor.lastTs=pairs.at(-1).t;APP.sensor.connected=true;analyseSensor();setChip('#chipSensor',APP.sensor.anomaly?'bad':'live',APP.sensor.anomaly?'sensor: anomaly':'sensor: connected');renderSensor()}catch(e){APP.sensor.connected=false;setChip('#chipSensor','warn','sensor: unreachable');$('#healthTitle').textContent='Channel unreachable';$('#healthText').textContent='Check that the channel is public and the selected field contains numbers.';logEvent('sensor','Sensor poll failed',String(e));renderSensor()}}
-function disconnectSensor(){clearInterval(APP.timers.sensor);APP.sensor={channel:'',field:'1',siteId:APP.siteId,samples:[],times:[],lastTs:0,baseline:NaN,noise:NaN,deviation:NaN,anomaly:false,connected:false};$('#btnDisconnectSensor').disabled=true;setChip('#chipSensor','','sensor: none');logEvent('sensor','Sensor disconnected','user');renderSensor()}
-
-const INO_CODE=`// HIMGAURAV example: ESP32 + MPU6050 slow inclination -> ThingSpeak\n// Prototype only. Compute a stable slow tilt value on-board; do not treat a 15 s cloud feed as seismic waveform data.\n#include <WiFi.h>\n#include <HTTPClient.h>\n#include <Wire.h>\n#include <Adafruit_MPU6050.h>\n#include <Adafruit_Sensor.h>\n\nconst char* WIFI_SSID = \"YOUR_WIFI\";\nconst char* WIFI_PASSWORD = \"YOUR_PASSWORD\";\nconst char* TS_WRITE_KEY = \"YOUR_THINGSPEAK_WRITE_KEY\";\nAdafruit_MPU6050 mpu;\n\nvoid setup(){\n  Serial.begin(115200); Wire.begin(); mpu.begin();\n  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);\n  while(WiFi.status()!=WL_CONNECTED) delay(300);\n}\n\nvoid loop(){\n  const int N=40; float sx=0, sy=0, sz=0;\n  for(int i=0;i<N;i++){\n    sensors_event_t a,g,t; mpu.getEvent(&a,&g,&t);\n    sx+=a.acceleration.x; sy+=a.acceleration.y; sz+=a.acceleration.z; delay(10);\n  }\n  sx/=N; sy/=N; sz/=N;\n  float tiltDeg = atan2(sqrt(sx*sx + sy*sy), sz) * 180.0 / PI;\n  if(WiFi.status()==WL_CONNECTED){\n    HTTPClient http;\n    String url = String(\"https://api.thingspeak.com/update?api_key=\") + TS_WRITE_KEY + \"&field1=\" + String(tiltDeg,3);\n    http.begin(url); http.GET(); http.end();\n  }\n  delay(15000);\n}\n`;
-
-function addCustomSite(){const name=$('#customName').value.trim(),lat=Number($('#customLat').value),lon=Number($('#customLon').value);if(!name||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<-90||lat>90||lon<-180||lon>180){$('#addSiteMsg').textContent='Please enter a site name and valid latitude / longitude.';return}const id='custom-'+Date.now();const s={id,name,region:APP.region,area:'Custom coordinate',lat,lon,inDomain:false,basis:'User-added coordinate. Threshold use is an extrapolation unless this coordinate is inside the original study area.'};APP.sites.push(s);let persisted=true;try{localStorage.setItem('himgaurav_custom_sites',JSON.stringify(APP.sites.filter(x=>x.id.startsWith('custom-'))))}catch{persisted=false}$('#customName').value=$('#customLat').value=$('#customLon').value='';APP.siteId=id;$('#addSiteMsg').textContent='Added '+name+(persisted?'. Fetching rainfall…':'. Browser storage is unavailable, so this site will last only for this session. Fetching rainfall…');logEvent('site','Custom site added',name+' · '+lat+', '+lon);renderSites();if(APP.mode==='live')fetchSiteWeather(s,true)}
-function nearest(which){if(!navigator.geolocation){toast('Geolocation is not available in this browser.');return}toast('Getting your location…');navigator.geolocation.getCurrentPosition(pos=>{const {latitude,longitude}=pos.coords;const hav=(a,b,c,d)=>{const R=6371,to=x=>x*Math.PI/180,dl=to(c-a),dn=to(d-b),q=Math.sin(dl/2)**2+Math.cos(to(a))*Math.cos(to(c))*Math.sin(dn/2)**2;return 2*R*Math.atan2(Math.sqrt(q),Math.sqrt(1-q))};if(which==='district'){const areas=areaList();let bi=0,bd=1e9;areas.forEach((d,i)=>{const k=hav(latitude,longitude,d.lat,d.lon);if(k<bd){bd=k;bi=i}});APP.districtIdx=bi;renderDistricts();toast('Nearest '+regionCfg().unit+' reference point: '+areas[bi].name+' (~'+Math.round(bd)+' km)')}else{const sites=regionSites();let bs=sites[0],bd=1e9;sites.forEach(s=>{const k=hav(latitude,longitude,s.lat,s.lon);if(k<bd){bd=k;bs=s}});APP.siteId=bs.id;renderSites();toast('Nearest monitored site: '+bs.name+' (~'+Math.round(bd)+' km)')}},e=>toast('Location could not be read: '+e.message),{timeout:8000})}
-
-function testChime(){try{const c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.frequency.value=760;g.gain.setValueAtTime(.001,c.currentTime);g.gain.exponentialRampToValueAtTime(.18,c.currentTime+.02);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.45);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.5);toast('Test chime played.')}catch{toast('Audio is blocked by this browser.')}}
-
-const DEMO_PHASES=[
-{name:'Normal',rain:6,ante:58,sensor:0.02,cap:'Light rainfall; threshold remains below trigger.'},
-{name:'Rising rain',rain:18,ante:78,sensor:0.03,cap:'Short-duration threshold starts to approach the published curve.'},
-{name:'Monitor',rain:34,ante:96,sensor:0.04,cap:'At least one rainfall duration crosses the threshold.'},
-{name:'Watch',rain:68,ante:126,sensor:0.05,cap:'Rainfall is strong and antecedent rain is high: WATCH.'},
-{name:'Sensor change',rain:74,ante:138,sensor:0.34,cap:'Ground sensor begins a sustained change.'},
-{name:'Warning',rain:82,ante:151,sensor:0.48,cap:'Rainfall WATCH plus local sensor anomaly: WARNING.'},
-{name:'Recovery',rain:21,ante:118,sensor:0.07,cap:'Rain reduces and the sensor returns toward baseline.'}
-];
-function setMode(mode){if(APP.mode===mode)return;
- const leavingDemo=APP.mode==='demo';
- if(mode==='demo'){APP.savedSensorConfig={channel:APP.sensor.channel,field:APP.sensor.field,siteId:APP.sensor.siteId};}
- APP.mode=mode;document.body.classList.toggle('sim',mode==='demo');$('#modeLive').classList.toggle('on',mode==='live');$('#modeDemo').classList.toggle('on',mode==='demo');$('#modeLive').setAttribute('aria-pressed',mode==='live');$('#modeDemo').setAttribute('aria-pressed',mode==='demo');clearInterval(APP.timers.demo);clearInterval(APP.timers.sensor);APP.timers.demo=APP.timers.sensor=0;$('#demoControls').style.display=mode==='demo'?'block':'none';
- if(mode==='demo'){APP.demo={i:0,playing:true,speed:1};applyDemo(0);APP.timers.demo=setInterval(()=>demoStep(1),1800);setChip('#chipRain','sim','rain: simulated');setChip('#chipQuake','sim','seismic: simulated');setChip('#chipSensor','sim','sensor: simulated');go('overview');toast('DEMO started — all changing values are simulated.');logEvent('mode','Demo mode started','scripted deterministic scenario · no live values shown')}
- else{
-   const cfg=APP.savedSensorConfig||{channel:'',field:'1',siteId:APP.siteId};APP.savedSensorConfig=null;
-   // Remove every demo-generated value before any network request. If a feed fails, LIVE must show NO DATA, never a leftover simulation.
-   APP.districtData=null;APP.siteWx={};APP.quakes=[];APP.lastCombined=null;
-   APP.sensor={channel:cfg.channel||'',field:cfg.field||'1',siteId:cfg.siteId||APP.siteId,samples:[],times:[],lastTs:0,baseline:NaN,noise:NaN,deviation:NaN,anomaly:false,connected:false};
-   setChip('#chipRain','','rain: reconnecting');setChip('#chipQuake','','seismic: reconnecting');setChip('#chipSensor',APP.sensor.channel?'warn':'',APP.sensor.channel?'sensor: reconnecting':'sensor: none');
-   renderAll();toast('Returned to LIVE — demo values discarded; refetching real feeds.');logEvent('mode','Returned to live mode',leavingDemo?'simulated values discarded':'live mode');refreshAll();
-   if(APP.sensor.channel){pollSensor();APP.timers.sensor=setInterval(pollSensor,15000)}
- }}
-function applyDemo(i){APP.demo.i=clamp(i,0,DEMO_PHASES.length-1);const p=DEMO_PHASES[APP.demo.i],s=site(),dates=Array.from({length:31},(_,k)=>{const d=new Date(Date.now()-(30-k)*86400000);return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(d)});let daily=Array.from({length:31},(_,k)=>Math.max(0,2+2*Math.sin(k*.7)));daily=daily.map((v,k)=>k>20?v+p.rain/10:v);daily[daily.length-1]=p.rain;const scale=p.ante/sumLast(daily,30);daily=daily.map(v=>v*scale);daily[daily.length-1]=p.rain;APP.siteWx={};APP.sites.forEach((x,ix)=>{APP.siteWx[x.id]={daily:daily.map(v=>v*(.72+ix*.05)),dates,current:{temp:18+ix*.2,hum:78+((ix*3)%12),wind:7+((ix*5)%9),precip:p.rain*(.45+((ix*7)%6)/10),soil:.28+Math.min(.25,p.ante/700)},ts:Date.now()}});APP.districtData=areaList().map((d,ix)=>({current:{temperature_2m:18+ix*.25,precipitation:p.rain*(ix===0?1:.15+((ix*7)%5)/10),weather_code:p.rain>50?65:p.rain>15?61:2},daily:{time:['p2','p1','p0',todayIST(),'n1','n2'],precipitation_sum:[8,12,16,p.rain*(ix===0?1:.15+((ix*7)%5)/10),6,4]}}));APP.sensor.connected=true;APP.sensor.siteId=s.id;const baseline=Array(12).fill(0).map((_,k)=>.10+Math.sin(k)*.006);APP.sensor.samples=baseline.concat([.10+p.sensor*.4,.10+p.sensor*.7,.10+p.sensor]);APP.sensor.lastTs=Date.now();analyseSensor();APP.quakes=Array.from({length:APP.demo.i>=4?4:1},(_,k)=>({properties:{mag:2.7+k*.4,place:'Simulated regional event',time:Date.now()-k*3600000}}));renderAll();renderDemo();logEvent('demo','Scenario phase: '+p.name,p.cap)}
-function demoStep(dir){if(APP.mode!=='demo'||!APP.demo.playing)return;let n=APP.demo.i+dir;if(n>=DEMO_PHASES.length){APP.demo.playing=false;n=DEMO_PHASES.length-1;$('#demoPause').textContent='Play'}applyDemo(n)}
-function renderDemo(){if(APP.mode!=='demo')return;const svg=$('#demoProgress'),w=760;svg.innerHTML='<line x1="30" y1="35" x2="730" y2="35" stroke="#D8CDEF" stroke-width="8" stroke-linecap="round"/>';DEMO_PHASES.forEach((p,i)=>{const x=30+i/(DEMO_PHASES.length-1)*700,on=i<=APP.demo.i;svg.insertAdjacentHTML('beforeend',`<circle cx="${x}" cy="35" r="${i===APP.demo.i?9:6}" fill="${on?'#6B50A1':'#fff'}" stroke="#6B50A1"/><text x="${x}" y="60" text-anchor="middle" font-size="8" fill="#6A6570">${i+1}</text>`)});$('#demoCaption').textContent=DEMO_PHASES[APP.demo.i].name+' — '+DEMO_PHASES[APP.demo.i].cap;$('#demoSpeed').textContent='Speed '+APP.demo.speed+'×'}
-
-function switchRegion(region){if(!REGIONS[region]||APP.region===region)return;APP.region=region;APP.districtIdx=0;APP.districtData=null;APP.quakes=[];const sites=regionSites();if(sites.length)APP.siteId=sites[0].id;if(APP.mode==='live'&&!APP.sensor.channel)APP.sensor.siteId=APP.siteId;APP.roadBlocked=false;$('#regionSelect').value=region;$('#brandSub').textContent='Unified Slope Watch · '+regionCfg().label;$('#freshText').textContent='Switching to '+regionCfg().label+'…';logEvent('region','Monitoring region changed',regionCfg().label);renderAll();if(APP.mode==='live')refreshAll(true);else applyDemo(APP.demo.i)}
-
-async function refreshAll(user=false){if(APP.mode==='demo')return;$('#freshText').textContent='Refreshing live data…';await Promise.all([fetchDistricts(user),fetchQuakes(user),fetchAllSites()]);$('#freshText').textContent='Refresh completed '+IST_TIME().slice(0,5)+' IST · check feed chips';renderAll()}
-function renderAll(){renderOverview();renderSites();renderSensor();renderResponse();renderLog();renderSources();renderDemo()}
-function boot(){$('#regionSelect').value=APP.region;$('#brandSub').textContent='Unified Slope Watch · '+regionCfg().label;$('#modeDemo').style.display='';renderSources();renderSites();renderSensor();renderResponse();renderLog();setInterval(()=>{$('#clock').textContent=IST_TIME()+' IST';if(APP.mode==='demo')$('#freshText').textContent='DEMO · scripted presentation data';else if(APP.siteWx[APP.siteId]?.ts)$('#freshText').textContent='Selected-site rain '+ageStr(Date.now()-APP.siteWx[APP.siteId].ts)},1000);$('#clock').textContent=IST_TIME()+' IST';refreshAll(false);APP.timers.district=setInterval(()=>fetchDistricts(false),300000);APP.timers.site=setInterval(()=>fetchSiteWeather(site(),false),300000);APP.timers.quake=setInterval(()=>fetchQuakes(false),900000);logEvent('boot','Dashboard started','live mode')}
-
-$('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(b)go(b.dataset.tab)});
-$('#regionSelect').onchange=e=>switchRegion(e.target.value);
-$('#modeLive').onclick=()=>setMode('live');$('#modeDemo').onclick=()=>setMode('demo');$('#btnRefresh').onclick=()=>refreshAll(true);$('#btnNearestDistrict').onclick=()=>nearest('district');$('#btnNearestSite').onclick=()=>nearest('site');
-function setTechnical(show){APP.technical=!!show;document.body.classList.toggle('techOn',APP.technical);$('#btnSimple').textContent=APP.technical?'Simple view':'Show technical';$('#btnTech').textContent=APP.technical?'Hide technical details':'Show technical details'}
-$('#btnSimple').onclick=()=>setTechnical(!APP.technical);
-$('#btnTech').onclick=()=>setTechnical(!APP.technical);
-$('#btnAddSite').onclick=addCustomSite;$('#btnConnectSensor').onclick=connectSensor;$('#btnDisconnectSensor').onclick=disconnectSensor;$('#sensorSite').onchange=e=>{APP.sensor.siteId=e.target.value;renderSensor()};
-$('#btnShowCode').onclick=()=>{const b=$('#codeBox');b.classList.toggle('hidden');b.textContent=INO_CODE;$('#btnShowCode').textContent=b.classList.contains('hidden')?'Show code':'Hide code'};
-$('#btnDownloadCode').onclick=()=>{const blob=new Blob([INO_CODE],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='himgaurav_esp32_tilt_node.ino';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Firmware example downloaded.')};
-$('#langRow').addEventListener('click',e=>{const b=e.target.closest('[data-lang]');if(!b)return;APP.lang=b.dataset.lang;$$('.langbtn').forEach(x=>x.classList.toggle('active',x===b));renderAlert()});$('#btnTestChime').onclick=testChime;
-$('#btnCopyLog').onclick=async()=>{const text=APP.logs.map(e=>`${new Date(e.t).toISOString()}\t${e.kind}\t${e.text}\t${e.src}`).join('\n');try{await navigator.clipboard.writeText(text);toast('Event log copied.')}catch{toast('Clipboard permission unavailable.')}};$('#btnClearLog').onclick=()=>{APP.logs=[];renderLog();toast('Event log cleared.')};
-$('#demoPause').onclick=()=>{APP.demo.playing=!APP.demo.playing;$('#demoPause').textContent=APP.demo.playing?'Pause':'Play'};$('#demoBack').onclick=()=>{APP.demo.playing=false;$('#demoPause').textContent='Play';applyDemo(APP.demo.i-1)};$('#demoNext').onclick=()=>{APP.demo.playing=false;$('#demoPause').textContent='Play';applyDemo(APP.demo.i+1)};$('#demoRestart').onclick=()=>{APP.demo.playing=true;$('#demoPause').textContent='Pause';applyDemo(0)};$('#demoSpeed').onclick=()=>{APP.demo.speed=APP.demo.speed===1?2:APP.demo.speed===2?4:1;clearInterval(APP.timers.demo);APP.timers.demo=setInterval(()=>demoStep(1),1800/APP.demo.speed);renderDemo()};
-
-boot();
-</script>
+  <script src="config.js"></script>
+  <script src="map-loader.js"></script>
+  <script src="alert-locales.js?v=7.0.0"></script>
+  <script src="app.js?v=7.0.0"></script>
 </body>
 </html>

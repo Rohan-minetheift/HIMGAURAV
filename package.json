@@ -1,0 +1,17 @@
+{
+  "name": "himgaurav-webapp",
+  "version": "7.0.0",
+  "description": "HIMGAURAV Satellite\u2013IoT landslide intelligence with a local-first multilingual alert centre.",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "check:js": "node --check app.js && node --check alert-locales.js",
+    "serve": "python3 serve.py",
+    "test": "npm run check:js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

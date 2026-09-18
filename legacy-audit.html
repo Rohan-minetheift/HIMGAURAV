@@ -1,0 +1,2986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="description" content="HIMGAURAV — site-level rainfall-threshold screening and sensor-integrity layer for slope monitoring in Himachal Pradesh. Research prototype.">
+<title>HIMGAURAV — Slope Watch, Himachal Pradesh</title>
+<style>
+/* ============================================================================
+   HIMGAURAV — design tokens
+   Light, document-like. No webfonts: the UI must survive with zero network.
+   Colour is never the only carrier of meaning — every state also has a glyph,
+   a filled-segment count and a word.
+   ========================================================================== */
+:root{
+  --paper:#F6F7F6;
+  --surface:#FFFFFF;
+  --surface-2:#F1F3F2;
+  --ink:#15181B;
+  --ink-2:#49525A;
+  --ink-3:#667079;
+  --rule:#DFE3E2;
+  --rule-2:#C4CCCA;
+  --accent:#12505E;
+  --accent-2:#0A3038;
+  --accent-wash:#E6EFF1;
+
+  --s-normal:#16713F;   --s-normal-bg:#E7F2EB;
+  --s-monitor:#8F5E00;  --s-monitor-bg:#F8EFDB;
+  --s-watch:#B8460F;    --s-watch-bg:#FBE9DF;
+  --s-warning:#A81C16;  --s-warning-bg:#FAE3E1;
+  --s-nodata:#5F6B73;   --s-nodata-bg:#ECEFF0;
+  --s-info:#1B5E8A;     --s-info-bg:#E4EFF6;
+  --s-sim:#6B4B9A;      --s-sim-bg:#EEE9F6;
+
+  --f-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --f-num: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --dur-fast:150ms; --dur:220ms; --dur-slow:320ms;
+  --ease:cubic-bezier(.2,.7,.3,1);
+  --rail:212px;
+}
+@media (prefers-reduced-motion: reduce){
+  :root{ --dur-fast:0ms; --dur:0ms; --dur-slow:0ms; }
+  *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}
+*{box-sizing:border-box}
+html{ -webkit-text-size-adjust:100% }
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-ui); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4{margin:0;font-weight:640;letter-spacing:-.011em;line-height:1.25}
+h1{font-size:17px} h2{font-size:15px} h3{font-size:13.5px}
+p{margin:0 0 .7em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px; border-radius:3px;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+hr.rule{border:0;border-top:1px solid var(--rule);margin:0}
+
+/* ---------- shell ---------- */
+.shell{min-height:100dvh;display:flex;flex-direction:column}
+header.bar{
+  position:sticky;top:0;z-index:40;background:var(--surface);
+  border-bottom:1px solid var(--rule-2);
+}
+.bar-in{display:flex;align-items:center;gap:10px;padding:8px 14px;max-width:1500px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:8px;min-width:0}
+.logo svg{width:22px;height:22px;flex:none;display:block}
+.logo b{font-size:14.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.logo span{font-size:11px;color:var(--ink-3);white-space:nowrap;display:none}
+@media(min-width:560px){.logo span{display:inline}}
+.bar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* mode switch */
+.modesw{display:inline-flex;border:1px solid var(--rule-2);border-radius:5px;overflow:hidden;background:var(--surface-2)}
+.modesw button{
+  background:transparent;border:0;padding:5px 10px;font-size:11.5px;font-weight:650;
+  color:var(--ink-3);letter-spacing:.02em;transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.modesw button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.modesw button#btnDemo[aria-pressed="true"]{background:var(--s-sim);color:#fff}
+
+/* freshness strip */
+.fresh{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:5px 14px;font-size:11.5px;color:var(--ink-2);
+  background:var(--surface-2);border-bottom:1px solid var(--rule);
+  max-width:1500px;margin:0 auto;width:100%;
+}
+.fresh .feed{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--s-nodata);box-shadow:0 0 0 2px rgba(0,0,0,.04)}
+.dot.ok{background:var(--s-normal)} .dot.warn{background:var(--s-monitor)}
+.dot.bad{background:var(--s-warning)} .dot.sim{background:var(--s-sim)}
+.fresh .sep{color:var(--rule-2)}
+.fresh .spacer{flex:1 1 auto;min-width:4px}
+.linkish{background:none;border:0;padding:0;color:var(--accent);font-size:inherit;text-decoration:underline;text-underline-offset:2px}
+
+/* demo banner */
+.simbar{
+  display:none;background:var(--s-sim);color:#fff;font-size:12.5px;font-weight:600;
+  padding:7px 14px;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;
+  position:sticky;top:0;z-index:41;
+}
+body.sim .simbar{display:flex}
+body.sim{--paper:#F7F5FA}
+body.sim header.bar{border-bottom-color:var(--s-sim);box-shadow:inset 0 -3px 0 var(--s-sim)}
+.simbar button{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:600}
+
+/* layout */
+.body{flex:1;display:block;max-width:1500px;margin:0 auto;width:100%}
+nav.rail{display:none}
+main{padding:0 0 92px;min-width:0}
+.view{display:none}
+.view.on{display:block}
+.wrap{padding:16px 14px;max-width:760px}
+
+/* section band */
+.band{border-top:1px solid var(--rule);padding:18px 14px;max-width:760px}
+.band:first-child{border-top:0}
+.band-h{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.band-h h2{flex:0 0 auto}
+.band-h .meta{font-size:11px;color:var(--ink-3);margin-left:auto;text-align:right}
+.lede{font-size:13px;color:var(--ink-2);max-width:66ch}
+
+/* ---------- provenance pills ---------- */
+.pill{
+  display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
+  letter-spacing:.045em;padding:2px 6px;border-radius:3px;white-space:nowrap;
+  border:1px solid transparent;vertical-align:middle;font-family:var(--f-num);
+}
+.pill::before{font-weight:800;font-size:9px}
+.p-live{background:var(--s-normal-bg);color:#0F5730;border-color:#BFDCCB}
+.p-live::before{content:"◉"}
+.p-derived{background:var(--s-info-bg);color:#154B6E;border-color:#C2D9E8}
+.p-derived::before{content:"ƒ"}
+.p-ref{background:var(--surface-2);color:var(--ink-2);border-color:var(--rule-2)}
+.p-ref::before{content:"▤"}
+.p-sensor{background:#EAF3F4;color:#0D4551;border-color:#BFD6DA}
+.p-sensor::before{content:"◈"}
+.p-sim{background:var(--s-sim-bg);color:#513A79;border-color:#D3C7E8}
+.p-sim::before{content:"▨"}
+.p-exp{background:var(--s-monitor-bg);color:#714B00;border-color:#E3CE9C}
+.p-exp::before{content:"⚗"}
+.p-prop{background:#F2F0EC;color:#5C5347;border-color:#DCD5C9}
+.p-prop::before{content:"◌"}
+.p-none{background:var(--s-nodata-bg);color:var(--s-nodata);border-color:var(--rule-2)}
+.p-none::before{content:"○"}
+.p-report{background:#F3EEE3;color:#6B5426;border-color:#E0CFA6}
+.p-report::before{content:"◫"}
+
+/* ---------- site header / state ---------- */
+.sitepick{display:flex;align-items:center;gap:8px;padding:12px 14px 0;max-width:760px;flex-wrap:wrap}
+select.sel, input.inp{
+  font:inherit;font-size:13.5px;padding:7px 9px;border:1px solid var(--rule-2);
+  border-radius:5px;background:var(--surface);color:var(--ink);max-width:100%;
+}
+select.sel{flex:1 1 200px;min-width:0}
+.btn{
+  border:1px solid var(--rule-2);background:var(--surface);color:var(--ink);
+  border-radius:5px;padding:7px 11px;font-size:12.5px;font-weight:550;
+  display:inline-flex;align-items:center;gap:6px;text-decoration:none;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease);
+}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-2)}
+.btn.sm{padding:4px 8px;font-size:11.5px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:7px;flex-wrap:wrap}
+
+/* the state block — the one bold element */
+.state{padding:14px 14px 18px;max-width:760px}
+.state-top{display:flex;align-items:flex-start;gap:14px}
+.ladder{flex:none;width:96px}
+.ladder .segs{display:flex;flex-direction:column-reverse;gap:3px}
+.ladder .seg{
+  height:11px;border-radius:2px;background:var(--surface-2);
+  border:1px solid var(--rule);
+  transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.ladder .seg.fill{background:currentColor;border-color:currentColor}
+.ladder .cap{font-size:9.5px;color:var(--ink-3);margin-top:6px;font-family:var(--f-num);letter-spacing:.03em}
+.state-txt{flex:1;min-width:0}
+.state-name{
+  font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.08;
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+}
+.state-name .glyph{
+  font-family:var(--f-num);font-size:17px;width:28px;height:28px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:2px solid currentColor;border-radius:5px;font-weight:800;
+}
+.state-sub{font-size:13.5px;color:var(--ink-2);margin-top:6px;max-width:58ch}
+.state-age{font-size:11.5px;color:var(--ink-3);margin-top:7px;font-family:var(--f-num)}
+.st-NORMAL{color:var(--s-normal)} .st-MONITOR{color:var(--s-monitor)}
+.st-WATCH{color:var(--s-watch)} .st-WARNING{color:var(--s-warning)}
+.st-NODATA{color:var(--s-nodata)}
+.statechip{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;
+  padding:2px 7px;border-radius:3px;font-family:var(--f-num);border:1px solid currentColor;
+}
+@keyframes stateIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.state-name.changed{animation:stateIn var(--dur-slow) var(--ease)}
+
+/* ---------- evidence table ---------- */
+.evid{border-top:1px solid var(--rule)}
+.erow{
+  display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:start;
+  padding:11px 14px;border-bottom:1px solid var(--rule);
+  width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0;
+}
+button.erow{transition:background var(--dur-fast) var(--ease)}
+button.erow:hover{background:var(--surface-2)}
+.erow .mark{
+  width:20px;height:20px;border-radius:4px;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:800;font-family:var(--f-num);
+  border:1.5px solid currentColor;margin-top:1px;
+}
+.erow .body{min-width:0}
+.erow .k{font-size:12.5px;font-weight:650;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.erow .v{font-size:12.5px;color:var(--ink-2);margin-top:2px;font-family:var(--f-num)}
+.erow .why{font-size:11.5px;color:var(--ink-3);margin-top:3px;line-height:1.45;max-width:60ch}
+.erow .right{font-size:11px;color:var(--ink-3);text-align:right;white-space:nowrap;padding-top:2px}
+.erow .chev{color:var(--ink-3);font-size:12px;margin-top:2px}
+
+/* expandable detail */
+.detail{padding:0 14px 14px;border-bottom:1px solid var(--rule);background:var(--surface-2);display:none}
+.detail.open{display:block;animation:openIn var(--dur) var(--ease)}
+@keyframes openIn{from{opacity:0}to{opacity:1}}
+.detail .inner{padding-top:12px;font-size:12.5px;color:var(--ink-2);line-height:1.55;max-width:66ch}
+
+/* key/value list */
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:12.5px;margin:10px 0}
+.kv dt{color:var(--ink-2);padding:5px 0;border-bottom:1px solid var(--rule);min-width:0}
+.kv dd{margin:0;padding:5px 0;border-bottom:1px solid var(--rule);text-align:right;font-family:var(--f-num);white-space:nowrap}
+.kv dd.wrap{white-space:normal;font-family:var(--f-ui);text-align:right}
+
+/* charts */
+figure.chart{margin:0 0 4px;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:10px 8px 6px;overflow:hidden}
+figure.chart svg{width:100%;height:auto;display:block}
+figure.chart figcaption{font-size:11px;color:var(--ink-3);padding:6px 4px 0;line-height:1.45}
+.chart-empty{padding:26px 10px;text-align:center;font-size:12.5px;color:var(--ink-3)}
+
+/* callouts */
+.note{
+  border-left:3px solid var(--rule-2);padding:9px 0 9px 11px;margin:12px 0;
+  font-size:12.5px;color:var(--ink-2);line-height:1.55;max-width:66ch;
+}
+.note.warn{border-left-color:var(--s-monitor);background:var(--s-monitor-bg);padding-right:11px;border-radius:0 4px 4px 0}
+.note.bad{border-left-color:var(--s-warning);background:var(--s-warning-bg);padding-right:11px;border-radius:0 4px 4px 0}
+.note.info{border-left-color:var(--s-info);background:var(--s-info-bg);padding-right:11px;border-radius:0 4px 4px 0}
+.note b{color:var(--ink)}
+
+/* event log */
+.log{list-style:none;margin:0;padding:0}
+.log li{display:grid;grid-template-columns:62px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+.log time{font-family:var(--f-num);font-size:11.5px;color:var(--ink-3);padding-top:1px}
+.log .what{color:var(--ink-2);min-width:0}
+.log .what b{color:var(--ink);font-weight:650}
+.log .src{font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.log li.hi{background:var(--accent-wash);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:4px}
+
+/* sensor */
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+@media(min-width:520px){.metrics{grid-template-columns:repeat(4,1fr)}}
+.metric{background:var(--surface);padding:10px 9px}
+.metric .l{font-size:10.5px;color:var(--ink-3);margin-bottom:3px;line-height:1.3}
+.metric .n{font-family:var(--f-num);font-size:16px;font-weight:600;letter-spacing:-.02em}
+.metric .u{font-size:10.5px;color:var(--ink-3);font-family:var(--f-ui);font-weight:400}
+.health{
+  display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:6px;
+  border:1px solid currentColor;margin-bottom:12px;
+}
+.health .hg{font-family:var(--f-num);font-weight:800;font-size:14px;width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border:2px solid currentColor;border-radius:5px}
+.health .ht{min-width:0;flex:1}
+.health .ht b{display:block;font-size:13.5px;font-weight:700;letter-spacing:.01em}
+.health .ht span{display:block;font-size:11.5px;color:var(--ink-2);margin-top:1px;line-height:1.4}
+
+/* precursor-sign chips + rescue log */
+.signgrid{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.signchip{border:1px solid var(--rule-2);background:var(--surface);border-radius:16px;padding:5px 11px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.signchip:hover{background:var(--surface-2)}
+.signchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.replist{list-style:none;margin:0;padding:0}
+.replist li{padding:9px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+.replist .rk{font-weight:650;color:var(--ink)}
+.replist .rt{color:var(--ink-3);font-size:11px;font-family:var(--f-num)}
+.replist .rn{color:var(--ink-2);margin-top:2px}
+.mlrow{display:grid;grid-template-columns:1fr;gap:7px}
+@media(min-width:560px){.mlrow{grid-template-columns:repeat(2,1fr)}}
+.mlfield label{display:block;font-size:10.5px;color:var(--ink-3);margin-bottom:3px;font-weight:650;letter-spacing:.02em}
+
+/* code */
+pre.code{
+  background:#11262C;color:#DCE8E9;padding:12px;border-radius:6px;overflow-x:auto;
+  font-family:var(--f-num);font-size:11px;line-height:1.6;margin:10px 0;
+  -webkit-overflow-scrolling:touch;
+}
+pre.code .c{color:#8AA8AD}
+
+/* sources */
+ol.src{list-style:none;counter-reset:s;margin:0;padding:0}
+ol.src li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:9px;padding:10px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+ol.src li::before{content:"[" counter(s) "]";font-family:var(--f-num);font-size:11px;color:var(--ink-3);padding-top:2px}
+ol.src a{font-weight:550;color:var(--ink);text-decoration:none}
+ol.src a:hover{text-decoration:underline}
+ol.src .m{color:var(--ink-3);font-size:11px;margin-top:2px}
+ol.src .u{color:var(--ink-2);font-size:11.5px;margin-top:4px;line-height:1.45}
+ol.src li.flash{background:var(--accent-wash);border-radius:4px;margin:0 -8px;padding-left:8px;padding-right:8px}
+sup.c{font-size:9.5px;font-family:var(--f-num);color:var(--accent);font-weight:700;cursor:pointer;padding:0 1px;background:none;border:0}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.tbl th,.tbl td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tbl th{font-size:10.5px;color:var(--ink-3);font-weight:650;letter-spacing:.02em}
+.tbl td.n{font-family:var(--f-num);text-align:right;white-space:nowrap}
+.scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* site cards list */
+.sitelist{display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.sitebtn{
+  display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:11px 14px;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;width:100%;
+  transition:background var(--dur-fast) var(--ease);
+}
+.sitebtn:hover{background:var(--surface-2)}
+.sitebtn[aria-current="true"]{background:var(--accent-wash);box-shadow:inset 3px 0 0 var(--accent)}
+.sitebtn .sq{width:16px;height:16px;border-radius:3px;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;font-family:var(--f-num);flex:none}
+.sitebtn .nm{font-size:13px;font-weight:600;min-width:0}
+.sitebtn .ds{font-size:11px;color:var(--ink-3);margin-top:1px}
+.sitebtn .rt{font-family:var(--f-num);font-size:11.5px;color:var(--ink-2);text-align:right;white-space:nowrap}
+
+/* map */
+.mapwrap{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:6px;overflow:hidden}
+.mapwrap svg{width:100%;height:auto;display:block}
+.mapnode{cursor:pointer}
+.mapnode circle.hit{fill:transparent}
+
+/* bottom nav */
+nav.tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--surface);
+  border-top:1px solid var(--rule-2);display:flex;
+  padding:4px 2px calc(4px + env(safe-area-inset-bottom));
+}
+nav.tabs button{
+  flex:1 1 0;min-width:0;background:none;border:0;padding:6px 2px 5px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-3);
+  border-radius:6px;min-height:46px;justify-content:center;
+}
+nav.tabs button svg{width:19px;height:19px;flex:none}
+nav.tabs button span{font-size:9.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+nav.tabs button[aria-current="page"] svg{stroke-width:2.1}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%) translateY(8px);
+  bottom:calc(72px + env(safe-area-inset-bottom));z-index:60;
+  background:var(--ink);color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;
+  max-width:88vw;text-align:center;opacity:0;pointer-events:none;
+  transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* demo console */
+.democtl{display:flex;flex-direction:column;gap:9px}
+.demoprog{height:5px;background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.demoprog i{display:block;height:100%;background:var(--s-sim);width:0%;transition:width var(--dur) linear}
+.demosteps{display:flex;gap:3px;flex-wrap:wrap}
+.demostep{font-size:10px;font-family:var(--f-num);padding:3px 6px;border-radius:3px;background:var(--surface-2);color:var(--ink-3);border:1px solid var(--rule)}
+.demostep.done{background:var(--s-sim-bg);color:#513A79;border-color:#D3C7E8}
+.demostep.now{background:var(--s-sim);color:#fff;border-color:var(--s-sim)}
+
+/* ---------- desktop ---------- */
+@media(min-width:1080px){
+  .body{display:grid;grid-template-columns:var(--rail) minmax(0,1fr);gap:0;align-items:start}
+  nav.tabs{display:none}
+  nav.rail{
+    display:block;position:sticky;top:0;align-self:start;
+    border-right:1px solid var(--rule);padding:14px 10px 20px;min-height:100dvh;
+  }
+  nav.rail .rl{font-size:10px;color:var(--ink-3);letter-spacing:.06em;font-weight:700;padding:0 8px 7px;font-family:var(--f-num)}
+  nav.rail button{
+    display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;
+    padding:8px 9px;border-radius:5px;color:var(--ink-2);font-size:13px;font-weight:550;text-align:left;
+    transition:background var(--dur-fast) var(--ease);
+  }
+  nav.rail button:hover{background:var(--surface-2)}
+  nav.rail button svg{width:17px;height:17px;flex:none}
+  nav.rail button[aria-current="page"]{background:var(--accent-wash);color:var(--accent-2);font-weight:650}
+  main{padding-bottom:28px}
+  .wrap,.band,.state,.sitepick{max-width:none}
+  .band,.state,.sitepick{padding-left:22px;padding-right:22px}
+  .erow,.detail,.sitebtn{padding-left:22px;padding-right:22px}
+  .band .lede,.state-sub,.detail .inner,.note{max-width:72ch}
+  .toast{bottom:24px}
+}
+@media(min-width:1500px){ :root{--rail:236px} }
+
+/* narrow guard */
+@media(max-width:340px){
+  body{font-size:14px}
+  .state-name{font-size:22px}
+  .ladder{width:76px}
+  .bar-in{padding:8px 10px}
+  .band,.state,.sitepick,.erow,.detail,.sitebtn{padding-left:10px;padding-right:10px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="simbar" id="simbar" role="status">
+  <span>SIMULATION — scripted demonstration data. Nothing on screen is live.</span>
+  <button type="button" id="simExit">Return to live</button>
+</div>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#12505E" stroke-width="1.7" stroke-linejoin="round">
+        <path d="M1.5 20 L8 8.5 L11 13.5 L15 5 L22.5 20 Z"/>
+        <path d="M6.2 20 L9.6 14" stroke="#B8460F" stroke-width="1.6"/>
+      </svg>
+      <div>
+        <b>HIMGAURAV</b>
+        <span>&nbsp;Slope Watch · Himachal Pradesh</span>
+      </div>
+    </div>
+    <div class="bar-right">
+      <div class="modesw" role="group" aria-label="Data mode">
+        <button type="button" id="btnLive" aria-pressed="true">LIVE</button>
+        <button type="button" id="btnDemo" aria-pressed="false">DEMO</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="fresh" id="fresh" role="status" aria-live="polite">
+  <span class="feed"><i class="dot" id="dRain"></i><span id="tRain">rainfall: starting</span></span>
+  <span class="sep">|</span>
+  <span class="feed"><i class="dot" id="dSeis"></i><span id="tSeis">seismic: starting</span></span>
+  <span class="sep">|</span>
+  <span class="feed"><i class="dot" id="dSens"></i><span id="tSens">ground sensor: none</span></span>
+  <span class="spacer"></span>
+  <button type="button" class="linkish" id="btnRefresh">Refresh now</button>
+</div>
+
+<div class="body">
+
+<nav class="rail" aria-label="Sections">
+  <div class="rl">HIMGAURAV</div>
+  <button type="button" data-tab="situation" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 17 9 9l3.5 4L17 5l4 6"/><path d="M3 21h18"/></svg>Situation</button>
+  <button type="button" data-tab="sites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6Z"/><path d="M9 3v15M15 6v15"/></svg>Sites</button>
+  <button type="button" data-tab="sensor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v7"/><circle cx="12" cy="12.5" r="2.4"/><path d="M6.5 7.5a8 8 0 0 0 0 11M17.5 7.5a8 8 0 0 1 0 11"/></svg>Ground sensor</button>
+  <button type="button" data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Event log</button>
+  <button type="button" data-tab="rescue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="3.2"/></svg>Rescue</button>
+  <button type="button" data-tab="method"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Method</button>
+  <button type="button" data-tab="evidence"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg>Sources</button>
+</nav>
+
+<main id="main">
+
+<!-- ================= SITUATION ================= -->
+<section class="view on" id="v-situation" aria-labelledby="h-sit">
+  <h1 id="h-sit" class="sr">Situation</h1>
+
+  <div class="sitepick">
+    <label class="sr" for="siteSel">Monitored site</label>
+    <select class="sel" id="siteSel"></select>
+    <button type="button" class="btn sm" id="btnNearest">Nearest to me</button>
+  </div>
+
+  <div class="state" role="status" aria-live="polite">
+    <div class="state-top">
+      <div class="ladder" id="ladder" aria-hidden="true">
+        <div class="segs">
+          <div class="seg" data-lv="1"></div>
+          <div class="seg" data-lv="2"></div>
+          <div class="seg" data-lv="3"></div>
+          <div class="seg" data-lv="4"></div>
+        </div>
+        <div class="cap" id="ladderCap">— / 4</div>
+      </div>
+      <div class="state-txt">
+        <div class="state-name st-NODATA" id="stateName"><span class="glyph" id="stateGlyph">?</span><span id="stateWord">STARTING</span></div>
+        <p class="state-sub" id="stateSub">Contacting the rainfall feed for this site.</p>
+        <div class="state-age" id="stateAge"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="evid" id="evid"></div>
+  <div class="detail" id="evidDetail"><div class="inner" id="evidDetailIn"></div></div>
+
+  <div class="band">
+    <div class="band-h">
+      <h2>Local reports</h2>
+      <span class="meta"><span class="pill p-report">REPORT</span></span>
+    </div>
+    <p class="lede">A visible warning sign, reported by anyone at this site, from the standard published checklist<sup class="c" data-src="21">21</sup>. This is human-sourced and unverified, so it is <b>never</b> used to move the state above automatically \u2014 it is shown as its own line of evidence for a person to weigh, the same discipline India's own crowdsourced landslide-reporting app had to add after early entries turned out to include test and duplicate reports<sup class="c" data-src="22">22</sup>.</p>
+    <div id="repBox"></div>
+    <div id="repForm">
+      <div class="signgrid" id="signPick"></div>
+      <div class="btnrow" style="margin-top:8px">
+        <label class="sr" for="repNote">Note</label>
+        <input class="inp" id="repNote" placeholder="Where exactly, and anything else worth saying" style="flex:1 1 220px">
+        <button type="button" class="btn primary sm" id="btnAddRep">Add report</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="band-h">
+      <h2>Rainfall at this site</h2>
+      <span class="meta" id="rainMeta">—</span>
+    </div>
+    <figure class="chart">
+      <svg id="chRain" viewBox="0 0 700 220" role="img" aria-labelledby="chRainT"><title id="chRainT">Daily rainfall, observed and forecast</title></svg>
+      <figcaption id="chRainCap">Daily precipitation total, millimetres. Bars left of the marker are modelled past days; bars to the right are forecast.</figcaption>
+    </figure>
+  </div>
+
+  <div class="band">
+    <div class="band-h">
+      <h2>Intensity–duration screening</h2>
+      <span class="meta"><span class="pill p-derived">DERIVED</span> <span class="pill p-exp">EXPERIMENTAL</span></span>
+    </div>
+    <p class="lede">Each point is the mean rainfall intensity this site has actually received over a given run of days, plotted against the published Shimla intensity–duration threshold<sup class="c" data-src="1">1</sup>. Points above the line mean the rainfall has entered the band in which landslides have historically occurred. It is a necessary condition, not a prediction.</p>
+    <figure class="chart">
+      <svg id="chId" viewBox="0 0 700 260" role="img" aria-labelledby="chIdT"><title id="chIdT">Observed rainfall intensity versus duration against the published threshold curve</title></svg>
+      <figcaption id="chIdCap">—</figcaption>
+    </figure>
+    <div class="scrollx"><table class="tbl" id="tblId"></table></div>
+  </div>
+
+  <div class="band">
+    <div class="band-h">
+      <h2>Regional seismicity, 90 days</h2>
+      <span class="meta"><span class="pill p-live">LIVE</span> USGS</span>
+    </div>
+    <p class="lede">Context only. This catalogue is not an input to the site state: a regional network with a magnitude 2.5 completeness threshold cannot see a single slope failing, and no earthquake in this window implies anything about slope stability.</p>
+    <div id="quakeBox"></div>
+  </div>
+
+  <div class="band">
+    <div class="band-h">
+      <h2>This monsoon in Himachal</h2>
+      <span class="meta"><span class="pill p-ref">REFERENCE</span> 11 Sep 2026</span>
+    </div>
+    <div id="seasonBox"></div>
+  </div>
+</section>
+
+<!-- ================= SITES ================= -->
+<section class="view" id="v-sites" aria-labelledby="h-sites">
+  <div class="band">
+    <div class="band-h"><h1 id="h-sites">Monitored sites</h1></div>
+    <p class="lede">Six reference locations plus any slope you add yourself. Rainfall is sampled from a gridded weather model at the coordinate shown — for a town that coordinate is a settlement centre, not a specific slope, so treat those rows as a district-scale screen. Only Kotrupi is a documented individual slope.</p>
+    <div class="mapwrap" style="margin-top:12px">
+      <svg id="siteMap" viewBox="0 0 700 420" role="img" aria-labelledby="mapT"><title id="mapT">Relative positions of monitored sites in Himachal Pradesh</title></svg>
+    </div>
+    <p class="lede" style="margin-top:8px;font-size:11.5px;color:var(--ink-3)">Schematic plot of latitude and longitude. This is deliberately not a basemap: no verified boundary, road or landslide-inventory layer is loaded, so drawing one would imply precision this prototype does not have. For real geospatial layers use GSI Bhukosh<sup class="c" data-src="10">10</sup> or ISRO Bhuvan<sup class="c" data-src="11">11</sup>.</p>
+  </div>
+  <div class="sitelist" id="siteList"></div>
+  <div class="band">
+    <div class="band-h"><h2>Add your own slope</h2><span class="meta"><span class="pill p-live">LIVE</span></span></div>
+    <p class="lede">Enter the coordinate of a slope you are responsible for. The same threshold screen runs against the gridded rainfall at that point. Coordinates stay in this browser — nothing is uploaded.</p>
+    <div class="btnrow" style="margin-top:10px">
+      <label class="sr" for="cName">Site name</label><input class="inp" id="cName" placeholder="Site name" maxlength="40" style="flex:1 1 150px">
+      <label class="sr" for="cLat">Latitude</label><input class="inp" id="cLat" placeholder="Latitude" inputmode="decimal" style="width:110px">
+      <label class="sr" for="cLon">Longitude</label><input class="inp" id="cLon" placeholder="Longitude" inputmode="decimal" style="width:110px">
+      <button type="button" class="btn primary" id="btnAddSite">Add site</button>
+    </div>
+    <p id="addMsg" class="lede" style="margin-top:8px"></p>
+  </div>
+</section>
+
+<!-- ================= SENSOR ================= -->
+<section class="view" id="v-sensor" aria-labelledby="h-sens">
+  <div class="band">
+    <div class="band-h"><h1 id="h-sens">Ground sensor</h1><span class="meta"><span class="pill p-exp">EXPERIMENTAL</span></span></div>
+    <p class="lede">A single low-cost inclination node on one slope, read through a public ThingSpeak channel. It is an instrument-integrity demonstration, not a validated landslide warning device. The point of this screen is that you can always tell the difference between a quiet slope and a sensor that has stopped talking.</p>
+  </div>
+
+  <div class="band" id="sensConnect">
+    <div class="band-h"><h2>Connect a channel</h2></div>
+    <div class="btnrow">
+      <label class="sr" for="tsCh">ThingSpeak channel ID</label>
+      <input class="inp" id="tsCh" placeholder="Channel ID" inputmode="numeric" style="width:140px">
+      <label class="sr" for="tsF">Field number for tilt</label>
+      <select class="sel" id="tsF" style="flex:0 0 120px"></select>
+      <button type="button" class="btn primary" id="btnConnect">Connect</button>
+      <button type="button" class="btn" id="btnDisconnect" hidden>Disconnect</button>
+    </div>
+    <p class="lede" style="margin-top:8px">The channel must be public — this page reads it with no API key, so no write key is ever held in the browser. Channel IDs are not secret, but they are not private either: anyone with the ID can read the feed.</p>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>Instrument health</h2><span class="meta" id="sensPill"><span class="pill p-none">NOT CONNECTED</span></span></div>
+    <div class="health st-NODATA" id="sensHealth">
+      <span class="hg" id="sensGlyph">○</span>
+      <span class="ht"><b id="sensState">NOT CONNECTED</b><span id="sensExplain">No channel entered. With no instrument, this site can reach WATCH from rainfall alone but can never reach WARNING — that is intentional.</span></span>
+    </div>
+    <div class="metrics" id="sensMetrics"></div>
+    <figure class="chart" style="margin-top:12px">
+      <svg id="chTilt" viewBox="0 0 700 220" role="img" aria-labelledby="chTiltT"><title id="chTiltT">Inclination against time with baseline band</title></svg>
+      <figcaption id="chTiltCap">Inclination in degrees. The shaded band is the baseline ± 3 × measurement noise, estimated from this channel's own history.</figcaption>
+    </figure>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>Why inclination, and why not seismic</h2></div>
+    <div id="sensMethod"></div>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>Node firmware</h2><span class="meta">example</span></div>
+    <p class="lede">Reads an MPU-6050 at 100 Hz for two seconds, derives inclination from the gravity vector, reports the median inclination and the RMS dynamic acceleration once per interval. Bursting then reducing on-device is the part that matters: posting one instantaneous sample every fifteen seconds would be meaningless. The sketch also fires a local buzzer directly off the node's own anomaly check, before it ever tries to reach ThingSpeak \u2014 most IoT disaster-monitoring systems are documented as depending on a live cloud round trip for any alert at all, which is exactly the moment a storm is most likely to have taken the network down<sup class="c" data-src="23">23</sup>.</p>
+    <div class="btnrow" style="margin-top:10px">
+      <button type="button" class="btn sm" id="btnCode">Show code</button>
+      <button type="button" class="btn sm" id="btnIno">Download .ino</button>
+    </div>
+    <div id="codeBox" hidden></div>
+  </div>
+</section>
+
+<!-- ================= LOG ================= -->
+<section class="view" id="v-log" aria-labelledby="h-log">
+  <div class="band">
+    <div class="band-h"><h1 id="h-log">Event log</h1><span class="meta" id="logMeta">—</span></div>
+    <p class="lede">Every line below was produced by something this page actually did in this session: a fetch that succeeded or failed, a threshold that was crossed, a sensor that went quiet, a state that changed. Nothing is pre-written. Live and simulated events are kept in separate logs and never mix.</p>
+    <div class="btnrow" style="margin-top:10px">
+      <button type="button" class="btn sm" id="btnCopyLog">Copy log</button>
+      <button type="button" class="btn sm" id="btnClearLog">Clear</button>
+    </div>
+  </div>
+  <div class="band"><ul class="log" id="logList"></ul></div>
+  <div class="band" id="demoConsole" hidden>
+    <div class="band-h"><h2>Scenario control</h2><span class="meta"><span class="pill p-sim">SIMULATED</span></span></div>
+    <div class="democtl">
+      <div class="demoprog"><i id="demoBar"></i></div>
+      <div class="demosteps" id="demoSteps"></div>
+      <p class="lede" id="demoCaption" style="margin:0"></p>
+      <div class="btnrow">
+        <button type="button" class="btn sm" id="dPause">Pause</button>
+        <button type="button" class="btn sm" id="dPrev">Back</button>
+        <button type="button" class="btn sm" id="dNext">Next phase</button>
+        <button type="button" class="btn sm" id="dRestart">Restart</button>
+        <button type="button" class="btn sm" id="dSpeed">Speed 1×</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RESCUE (AcuSearch) ================= -->
+<section class="view" id="v-rescue" aria-labelledby="h-res">
+  <div class="band">
+    <div class="band-h"><h1 id="h-res">Rescue \u2014 AcuSearch</h1><span class="meta"><span class="pill p-exp">EXPERIMENTAL</span> <span class="pill p-prop">PROPOSED</span></span></div>
+    <p class="lede">The survivor-location half of this project, kept in the same file and held to the same rule: nothing here claims to detect anyone. What follows is the actual, narrow, evidence-backed gap this component targets, and a field tool for closing it.</p>
+    <div class="note warn">
+      <b>The honest finding, in one paragraph.</b> Every proven victim-location method \u2014 UWB radar, seismic listening devices, the RECCO passive reflector, a 2026 phone-microphone method \u2014 is validated in structural rubble, snow, or open ground. None is validated in water-saturated clay and mud, the actual burial medium of a monsoon-triggered landslide. Published soil-radar depth guides show wet clay cuts penetration to roughly a third of dry sand's<sup class="c" data-src="19">19</sup>, and a prior UWB/WiFi ranging trial recovered no UWB packets past 9 m even in drier rubble<sup class="c" data-src="17">17</sup>. Landslide burial is also unusually lethal fast: about 90% of fatalities in one documented storm-triggered event were asphyxiation regardless of indoor/outdoor location<sup class="c" data-src="20">20</sup> \u2014 far less void space than an earthquake-collapsed building leaves. No public study answers whether a phone-based signal survives that medium at all. That is a measurement gap, not a missing invention, and the honest next step is to measure it before building a detector.
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>What was rejected, and why</h2></div>
+    <div class="scrollx"><table class="tbl">
+      <thead><tr><th>Approach</th><th>Verdict</th><th>Reason</th></tr></thead>
+      <tbody>
+        <tr><td>Three-layer WiFi + acoustic + mesh app, shipped as originally pitched</td><td>Rejected</td><td>Known combination of known parts; combining them demonstrates no capability the parts don't already have separately, and assumes the RF/acoustic link survives burial without checking.</td></tr>
+        <tr><td>Claim a detection range in landslide debris</td><td>Rejected</td><td>No source supports any number. Publishing one would repeat the same fabrication problem already removed from the rest of this project.</td></tr>
+        <tr><td>DIY clone of RECCO's harmonic-radar reflector</td><td>Rejected</td><td>Patented technology; the same water-attenuation problem applies to it too; not a gap a student team can move.</td></tr>
+        <tr><td>Rely on cellular Advanced Mobile Location</td><td>Rejected</td><td>Needs an active emergency call on a live network \u2014 exactly what burial and rural signal loss remove first.</td></tr>
+        <tr><td>Run the soil-pit link-budget measurement first</td><td>Kept</td><td>Costs almost nothing, makes no claim the evidence doesn't support yet, and produces a real answer either way.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>Field tool \u2014 soil-pit link-budget log</h2><span class="meta"><span class="pill p-exp">EXPERIMENTAL</span></span></div>
+    <p class="lede">Bury a phone (Wi-Fi/BLE beacon or a fixed audible tone) or a wired contact microphone in local soil at a known depth and moisture level. Walk a receiver outward and log whether the signal is still detectable at each distance. This is the minimum experiment that can validate or kill any phone-based rescue concept for this deployment \u2014 log real results here rather than assuming an answer.</p>
+    <div class="mlrow">
+      <div class="mlfield"><label for="mlMod">Signal type</label>
+        <select class="sel" id="mlMod">
+          <option value="wifi">Wi-Fi / BLE (2.4 GHz)</option>
+          <option value="audible">Audible tone (phone speaker)</option>
+          <option value="wired">Wired contact microphone</option>
+        </select>
+      </div>
+      <div class="mlfield"><label for="mlDepth">Burial depth (m)</label><input class="inp" id="mlDepth" type="number" min="0" max="5" step="0.1" placeholder="e.g. 0.6" style="width:100%"></div>
+      <div class="mlfield"><label for="mlMoist">Soil condition</label>
+        <select class="sel" id="mlMoist">
+          <option value="dry">Dry</option>
+          <option value="damp">Damp</option>
+          <option value="saturated">Saturated / waterlogged</option>
+        </select>
+      </div>
+      <div class="mlfield"><label for="mlDist">Lateral distance (m)</label><input class="inp" id="mlDist" type="number" min="0" max="50" step="0.5" placeholder="e.g. 3" style="width:100%"></div>
+      <div class="mlfield"><label for="mlDet">Detected?</label>
+        <select class="sel" id="mlDet"><option value="yes">Yes, still detectable</option><option value="no">No signal</option></select>
+      </div>
+      <div class="mlfield"><label for="mlNote">Note (optional)</label><input class="inp" id="mlNote" placeholder="soil type, equipment used\u2026" style="width:100%"></div>
+    </div>
+    <div class="btnrow" style="margin-top:10px">
+      <button type="button" class="btn primary" id="btnAddMeas">Log measurement</button>
+      <button type="button" class="btn sm" id="btnCopyMeas">Copy as CSV</button>
+      <button type="button" class="btn sm" id="btnClearMeas">Clear all</button>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>Results so far</h2><span class="meta" id="measMeta">0 measurements</span></div>
+    <figure class="chart">
+      <svg id="chMeas" viewBox="0 0 700 240" role="img" aria-labelledby="chMeasT"><title id="chMeasT">Detection outcome versus lateral distance, by signal type and burial depth</title></svg>
+      <figcaption id="chMeasCap">Each point is one logged measurement. Filled circles detected a signal at that distance; hollow circles did not. No points plotted yet means no experiment has been run \u2014 that is a true state, not an error.</figcaption>
+    </figure>
+    <div class="scrollx"><table class="tbl" id="tblMeas"></table></div>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>Precursor signs \u2014 reference list</h2><span class="meta"><span class="pill p-ref">REFERENCE</span></span></div>
+    <p class="lede">The standard, publicly published list of visible signs that a slope may already be moving, used by the "Local reports" evidence row on the Situation screen<sup class="c" data-src="21">21</sup>. These are things any observer can see without instruments \u2014 not a detection technology, a checklist.</p>
+    <div class="signgrid" id="signRef" aria-hidden="true"></div>
+  </div>
+
+  <div class="band">
+    <div class="band-h"><h2>What is not built, and will not appear connected</h2><span class="meta"><span class="pill p-prop">PROPOSED</span></span></div>
+    <ul style="font-size:13px;color:var(--ink-2);line-height:1.65;padding-left:18px;margin:6px 0">
+      <li>No detector. Nothing on this screen claims to locate a person. It logs an experiment and shows a reference checklist.</li>
+      <li>No radar, no WiFi-ranging engine, no acoustic-azimuth engine. Building one before the measurement above is answered would be building on an unverified premise \u2014 exactly the mistake this project already corrected once for HIMGAURAV's rainfall model.</li>
+      <li>No integration with SACHET, cell broadcast, or any government alert rail. That is a policy decision, not a software feature.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= METHOD ================= -->
+<section class="view" id="v-method" aria-labelledby="h-met">
+  <div class="band"><div class="band-h"><h1 id="h-met">Method</h1></div>
+    <p class="lede">What this system is, what it is not, and exactly how every number on the previous screens was produced.</p>
+  </div>
+  <div id="methodBody"></div>
+</section>
+
+<!-- ================= EVIDENCE ================= -->
+<section class="view" id="v-evidence" aria-labelledby="h-ev">
+  <div class="band"><div class="band-h"><h1 id="h-ev">Sources</h1></div>
+    <p class="lede">Each entry says what it is being used to support. Claims that could not be supported were removed rather than softened — the Method screen lists those.</p>
+  </div>
+  <div class="band"><ol class="src" id="srcList"></ol></div>
+</section>
+
+</main>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+  <button type="button" data-tab="situation" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 17 9 9l3.5 4L17 5l4 6"/><path d="M3 21h18"/></svg><span>Situation</span></button>
+  <button type="button" data-tab="sites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6Z"/><path d="M9 3v15M15 6v15"/></svg><span>Sites</span></button>
+  <button type="button" data-tab="sensor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v7"/><circle cx="12" cy="12.5" r="2.4"/><path d="M6.5 7.5a8 8 0 0 0 0 11M17.5 7.5a8 8 0 0 1 0 11"/></svg><span>Sensor</span></button>
+  <button type="button" data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Log</span></button>
+  <button type="button" data-tab="rescue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="3.2"/></svg><span>Rescue</span></button>
+  <button type="button" data-tab="method"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Method</span></button>
+  <button type="button" data-tab="evidence"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg><span>Sources</span></button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+<script>
+"use strict";
+/* ===========================================================================
+   HIMGAURAV — Slope Watch
+   Single file, no dependencies, no build step, no external fonts.
+
+   Data-truth contract. Every value rendered carries exactly one provenance:
+     LIVE       fetched from a named external source during this session
+     DERIVED    computed here from live or reference inputs, formula shown
+     REFERENCE  dated static fact from a cited source, never called live
+     SENSOR     received from a connected field instrument
+     SIMULATED  produced only by the scripted demonstration
+     EXPERIMENTAL  a real method, not validated for warning at this deployment
+     PROPOSED   architecture that does not exist in this prototype
+
+   Live state and simulated state live in two separate objects that never
+   reference each other. Leaving DEMO discards the simulated object entirely.
+   =========================================================================== */
+
+/* ------------------------------ 1. constants ----------------------------- */
+
+const CFG = {
+  wxRefreshMs: 10 * 60 * 1000,
+  sensorPollMs: 20 * 1000,
+  fetchTimeoutMs: 12000,
+  staleWarnMs: 30 * 60 * 1000,      // rainfall fetch older than this is flagged
+  staleFailMs: 3 * 60 * 60 * 1000,  // older than this and the state becomes NO DATA
+  sensorStaleMs: 10 * 60 * 1000,
+  sensorDeadMs: 60 * 60 * 1000,
+  sensorBaselineN: 30,
+  cacheKey: 'himgaurav.wxcache.v1',
+  sitesKey: 'himgaurav.sites.v1',
+  reportsKey: 'himgaurav.reports.v1',
+  measKey: 'himgaurav.acumeas.v1'
+};
+
+/* Published intensity–duration threshold, Shimla, Northwestern Himalaya.
+   I = 7.20 * D^-0.26, I in mm/day, D in days. Fitted to 31 years (1990-2020)
+   of local landslide dates and daily rainfall. Source [1].
+   Applying it outside the Shimla area is an extrapolation and is labelled. */
+const THRESH = {
+  a: 7.20, b: -0.26,
+  durations: [1, 2, 3, 5, 7, 10],
+  anteDays: 30, anteMm: 110,
+  /* Bayesian landslide probability by rainfall duration, same paper, used only
+     as a qualitative ladder in the explanation text — never as a percentage. */
+  bayes: { 1: 0.06, 10: 1.0 }
+};
+function idThreshold(D) { return THRESH.a * Math.pow(D, THRESH.b); }
+
+const STATES = {
+  NODATA:  { lv: 0, word: 'NO DATA', glyph: '?', cls: 'st-NODATA' },
+  NORMAL:  { lv: 1, word: 'NORMAL',  glyph: '\u2713', cls: 'st-NORMAL' },
+  MONITOR: { lv: 2, word: 'MONITOR', glyph: '!', cls: 'st-MONITOR' },
+  WATCH:   { lv: 3, word: 'WATCH',   glyph: '!!', cls: 'st-WATCH' },
+  WARNING: { lv: 4, word: 'WARNING', glyph: '\u25B2', cls: 'st-WARNING' }
+};
+
+const BASE_SITES = [
+  { id:'kotrupi', name:'Kotrupi', area:'Padhar tehsil, Mandi \u00b7 NH-154', lat:31.9104, lon:76.8906,
+    kind:'slope', inDomain:false,
+    basis:'A documented individual failure. A debris flow on the night of 12\u201313 August 2017 destroyed a stretch of NH-154 and killed at least 46 people, most of them passengers on two HRTC buses swept roughly 800 m downslope. The same slope is reported to have failed in 1977 and reactivated in 1997 and 2007. UAV, satellite and numerical work published in 2026 finds parts of the slope still unstable.',
+    cites:[2,3,4] },
+  { id:'shimla', name:'Shimla', area:'Shimla district', lat:31.1048, lon:77.1734,
+    kind:'town', inDomain:true,
+    basis:'The threshold this tool applies was fitted here, from 31 years of Shimla landslide dates and daily rainfall. This is the only site where the curve is used inside the area it was derived for.',
+    cites:[1] },
+  { id:'mandi', name:'Mandi', area:'Mandi district', lat:31.7084, lon:76.9319,
+    kind:'town', inDomain:false,
+    basis:'District centre. Mandi consistently records the largest share of blocked roads in state emergency-operations reporting during the 2026 monsoon, and GSI notes ground-based slope-specific early-warning installations already exist at some locations in this district.',
+    cites:[5,9] },
+  { id:'kullu', name:'Kullu', area:'Kullu district', lat:31.9578, lon:77.1095,
+    kind:'town', inDomain:false,
+    basis:'District centre, second-highest road-blockage count in the 11 September 2026 state report.',
+    cites:[5] },
+  { id:'dharamshala', name:'Dharamshala', area:'Kangra district', lat:32.2190, lon:76.3234,
+    kind:'town', inDomain:false,
+    basis:'District centre. Recorded the highest 24-hour rainfall in the state (87.2 mm) in the 12 September 2026 bulletin.',
+    cites:[6] },
+  { id:'solan', name:'Solan', area:'Solan district', lat:30.9045, lon:77.0967,
+    kind:'town', inDomain:false,
+    basis:'District centre. A 2025 review of 74 peer-reviewed studies places Shimla, Mandi, Solan and Sirmaur among the districts with the highest recorded landslide frequency in Himachal Pradesh.',
+    cites:[7] }
+];
+
+const SOURCES = [
+  { t:'Singh, Thakur, Dhiman, Chandel, Kishore & Manocha \u2014 Development of rainfall threshold equation and Bayesian probabilistic analysis for landslide prediction: a case study of Shimla, Northwestern Himalaya, India',
+    m:'Natural Hazards Research 5(3), 455\u2013467, September 2025',
+    u:'Supplies the intensity\u2013duration curve I = 7.20\u00b7D^\u22120.26 used by the threshold screen, the 110 mm / 30-day antecedent figure, and the statement that landslide probability rises from 0.06 at one day of rainfall to near certainty at ten.',
+    l:'https://www.sciencedirect.com/science/article/pii/S2666592124000969' },
+  { t:'Petley \u2014 Kotrupi: a landslide in northern India kills at least 46 people',
+    m:'AGU Landslide Blog, 13 August 2017',
+    u:'Death toll, date, NH-154 location and the roughly 800 m run-out at Kotrupi.',
+    l:'https://blogs.agu.org/landslideblog/2017/08/13/kotrupi-1/' },
+  { t:'Singh, Gupta & Shukla \u2014 Analysis of landslide reactivation using satellite data: a case study of Kotrupi landslide, Mandi, Himachal Pradesh',
+    m:'ISPRS Archives XLII-3/W11, 2020',
+    u:'The 1977 / 1997 / 2007 / 2017 reactivation sequence at the same scarp.',
+    l:'https://isprs-archives.copernicus.org/articles/XLII-3-W11/137/2020/' },
+  { t:'Identifying reactivation zones in the Kotrupi landslide through UAV, satellite image and slope stability analysis',
+    m:'Indexed on PubMed, 2026 (IIT Mandi and collaborators)',
+    u:'That the site has reactivated repeatedly since 2017 and that UAV and TanDEM-X derived DEMs were used for pre- and post-event stability assessment.',
+    l:'https://pubmed.ncbi.nlm.nih.gov/42365019/' },
+  { t:'Himachal Pradesh State Emergency Operations Centre assessment, 30 June \u2013 11 September 2026 (reported)',
+    m:'Reported 12 September 2026',
+    u:'296 deaths over 74 days, of which 119 are attributed to disasters and weather and 177 to road accidents; 520 injured; \u20b91,661.97 crore cumulative loss; 67 roads blocked on the morning of 12 September, of which Mandi 36, Kullu 11, Kangra 10; 142 distribution-transformer regions affected.',
+    l:'https://thenewsmill.com/2026/09/himachal-pradesh-monsoon-losses-exceed-rs-1661-crore-with-296-deaths-in-74-days/' },
+  { t:'Himachal Pradesh rainfall bulletin, 12 September 2026',
+    m:'Reported 12 September 2026',
+    u:'The 24-hour station rainfall figures quoted for Dharamshala, Kangra, Kufri and Shimla.',
+    l:'https://www.rozanaspokesman.com/news/himachal-pradesh/120926/light-to-moderate-rainfall-forecast-across-state-through-september-17-s.html' },
+  { t:'Jallayu, Singh, Onyelowe, Sharma & Tiwary \u2014 Rainfall-induced landslides in Himachal Pradesh: a review of current knowledge and research trends',
+    m:'Cogent Engineering 12(1), 2025',
+    u:'That Shimla, Mandi, Solan and Sirmaur show the highest landslide frequencies, and that real-time rainfall integration into early-warning systems is an identified research gap.',
+    l:'https://doi.org/10.1080/23311916.2025.2530569' },
+  { t:'Geological Survey of India \u2014 National Landslide Forecasting Centre, Bhusanket portal and activities',
+    m:'NLFC inaugurated 19 July 2024; public forecasts for Darjeeling, Kalimpong and the Nilgiris from 20 July 2024; nationwide regional LEWS targeted for 2030',
+    u:'That regional forecasting is public only for three districts, that coverage grew from 16 districts in six states to 21 districts in eight states by 2025, and that a GSI\u2013HPSDMA framework MoU for an experimental regional forecast system in Himachal Pradesh was signed on 27 December 2023.',
+    l:'https://bhusanket.gsi.gov.in/Activities_V9.html' },
+  { t:'Geological Survey of India \u2014 note on landslide hazards and early warning',
+    m:'8 August 2024',
+    u:'That national susceptibility mapping covers about 4.3 lakh km\u00b2 across 19 states, and that ground-based slope-specific early-warning systems already exist at some locations in Mandi district.',
+    l:'https://bhusanket.gsi.gov.in/Public_Portal_News_pdf/Revised%20Note%20on%20Landslide%20Hazards%20&%20Early%20Warning_GSI_08.08.2024.cleaned.pdf' },
+  { t:'GSI Bhukosh \u2014 national geoscience data repository',
+    m:'Live portal',
+    u:'Where real landslide inventory and susceptibility polygons come from. This prototype deliberately loads none of them.',
+    l:'https://bhukosh.gsi.gov.in/' },
+  { t:'ISRO Bhuvan \u2014 geoplatform',
+    m:'Live portal',
+    u:'Indian satellite basemap and thematic layers, referred to instead of drawing an imitation map here.',
+    l:'https://bhuvan.nrsc.gov.in/' },
+  { t:'Open-Meteo forecast API',
+    m:'Free, no key, CC BY 4.0',
+    u:'Every rainfall, temperature and humidity number on the Situation screen. Values are from a numerical weather model on a grid of a few kilometres, including for past days \u2014 they are not gauge observations.',
+    l:'https://open-meteo.com/' },
+  { t:'USGS FDSN event web service',
+    m:'Free, no key',
+    u:'The regional earthquake catalogue shown as context on the Situation screen.',
+    l:'https://earthquake.usgs.gov/fdsnws/event/1/' },
+  { t:'Abraham, Satyam, Pradhan & Rosi \u2014 Using field-based monitoring to enhance the performance of rainfall thresholds for landslide warning',
+    m:'Water 12(12), 3453, 2020; and Geosciences Journal, 2021',
+    u:'That adding MEMS tilt-sensor readings to a rainfall-threshold model at Kalimpong cut false alarms from 70 to 38 over the study period. This is the evidence for requiring two independent agreeing signals before a warning.',
+    l:'https://doi.org/10.3390/w12123453' },
+  { t:'Cook et al. \u2014 Detection and potential early warning of catastrophic flow events with regional seismic networks',
+    m:'Science 374(6563), 87\u201392, 2021',
+    u:'That the 2021 Chamoli rock-and-ice avalanche produced signals detectable up to 100 km away, and that a seismic system could have issued downstream warning within minutes. Cited as the reason seismic detection is interesting, and as the reason it needs a real seismic network rather than this prototype.',
+    l:'https://www.science.org/doi/10.1126/science.abj1227' },
+  { t:'Wu et al. \u2014 P-Alert low-cost MEMS accelerometer network, Taiwan',
+    m:'607 stations as of July 2016; 781 stations reported in 2025 analysis; 100 samples per second, three-component, \u00b12 g',
+    u:'That dense low-cost MEMS seismic networks work at national scale \u2014 and that they run at 100 Hz, which is why a feed at one sample per fifteen seconds cannot be described as seismic monitoring.',
+    l:'https://www.nature.com/articles/s41598-025-97748-z' },
+  { t:'Lopez-Pastor, Ruiz-Ruiz, Martinez-Sala et al. \u2014 Victim detection and localization in emergencies',
+    m:'Sensors 22(21), 8433, 2022',
+    u:'That WiFi FTM and UWB ranging both degrade sharply once a phone is buried, and that in their rubble trial no UWB packet was captured from a reference point beyond 9 m while WiFi packets still arrived.',
+    l:'https://doi.org/10.3390/s22218433' },
+  { t:'NDMA and DoT \u2014 nationwide test of the Cell Broadcast Alert System over SACHET',
+    m:'Test conducted 2 May 2026',
+    u:'That India has a CAP-based geo-targeted cell-broadcast channel which was tested nationwide on 2 May 2026 ahead of full operational rollout in multiple languages.',
+    l:'https://www.deccanchronicle.com/nation/what-is-ndmas-nationwide-cell-broadcast-alert-system-for-natural-disasters-1954155' },
+  { t:'Ground-penetrating-radar depth guides for soil type (practitioner references)',
+    m:'sphengineering.com; mineclosure.gtk.fi GPR guidance',
+    u:'That wet, clay-rich soil reduces radar penetration depth to roughly a third of what dry sand allows, because conductive, water-saturated ground absorbs the signal \u2014 the physical reason the Rescue screen treats every existing detection range as unproven in landslide debris specifically.',
+    l:'https://www.spengineeringinc.com/site-investigation/geophysical-surveys/ground-penetrating-radar/' },
+  { t:'Human Vulnerability to Landslides',
+    m:'PMC (peer-reviewed)',
+    u:'That roughly 90% of fatalities in the 2002 storm-triggered landslides in Chuuk, Micronesia were asphyxiation by burial, regardless of whether the victim was indoors or outdoors \u2014 the basis for treating landslide burial as having far less survivable void space than earthquake rubble.',
+    l:'https://pmc.ncbi.nlm.nih.gov/articles/PMC7096057/' },
+  { t:'U.S. Geological Survey \u2014 Landslide Preparedness',
+    m:'Live reference page',
+    u:'The published checklist of visible ground, structure and sound-based landslide warning signs used verbatim by the Local reports feature and the Rescue screen\u2019s reference list.',
+    l:'https://www.usgs.gov/programs/landslide-hazards/landslide-preparedness' },
+  { t:'Hariharan & Guntha \u2014 Crowdsourced Landslide Tracking: Lessons from Field Experiences of Landslide Tracker Mobile App',
+    m:'vEGU General Assembly, 2021 (Amrita University, LANDSLIP project)',
+    u:'That India already has a crowdsourced landslide-reporting app (deployed in Sikkim, Kerala and the Nilgiris under the UK-funded LANDSLIP project), and that its own developers documented test entries, duplicate entries and mistaken entries as a real data-quality problem \u2014 the reason this tool never lets an unverified report move the automated state on its own.',
+    l:'https://ui.adsabs.harvard.edu/abs/2021EGUGA..2312711H/abstract' },
+  { t:'Smart Disaster Detection and Alerting System Using IoT-Based Edge Sensing',
+    m:'IEEE DataPort, 2025',
+    u:'That most IoT-based disaster-monitoring systems are documented as cloud-dependent with no real-time local alert as a distinct limitation \u2014 the reason the node firmware here fires its buzzer locally, from the sensor itself, rather than waiting on a round trip to ThingSpeak.',
+    l:'https://ieee-dataport.org/documents/smart-disaster-detection-and-alerting-system-using-iot-based-edge-sensing' }
+];
+
+/* Standard, publicly published landslide warning signs (source 21). Used as a
+   fixed checklist for the Local reports feature — never free text for the
+   sign itself, so every report is comparable and nothing is fabricated by
+   phrasing. */
+const PRECURSOR_SIGNS = [
+  { id:'crack', label:'New ground crack', detail:'A new or widening crack in the ground, a paved surface, or a building foundation.' },
+  { id:'tilt', label:'Tilted pole, fence or tree', detail:'A utility pole, fence line or tree that has started leaning that was not leaning before.' },
+  { id:'spring', label:'New spring or seepage', detail:'Water coming out of the ground in a place it did not before, or ground that is suddenly wet.' },
+  { id:'muddy', label:'Muddy water in a clear stream', detail:'A stream that is normally clear running muddy, or its level rising or falling suddenly with no matching rainfall.' },
+  { id:'jam', label:'Doors or windows jamming', detail:'A door or window sticking for the first time, or visible gaps opening around a frame.' },
+  { id:'sound', label:'Faint rumbling sound', detail:'A faint rumbling or cracking sound, especially one that is getting louder.' },
+  { id:'bulge', label:'Bulging ground', detail:'Ground that bulges outward at the base of a slope.' }
+];
+
+/* ------------------------------ 2. utilities ----------------------------- */
+
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+function el(tag, attrs, kids) {
+  const n = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(c => {
+    if (c === null || c === undefined || c === false) return;
+    n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return n;
+}
+function clear(n) { while (n && n.firstChild) n.removeChild(n.firstChild); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+function num(v, d) {
+  if (v === null || v === undefined || !isFinite(v)) return '\u2014';
+  return Number(v).toFixed(d === undefined ? 1 : d);
+}
+function istTime(d) {
+  try { return new Intl.DateTimeFormat('en-GB', { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Kolkata' }).format(d); }
+  catch (e) { return '--:--'; }
+}
+function istDate(d) {
+  try { return new Intl.DateTimeFormat('en-GB', { day:'2-digit', month:'short', timeZone:'Asia/Kolkata' }).format(d); }
+  catch (e) { return ''; }
+}
+function istISODate(d) {
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Kolkata', year:'numeric', month:'2-digit', day:'2-digit' }).format(d || new Date()); }
+  catch (e) { return (d || new Date()).toISOString().slice(0, 10); }
+}
+function ageStr(ms) {
+  if (ms === null || ms === undefined || !isFinite(ms)) return 'unknown age';
+  if (ms < 0) ms = 0;
+  const s = Math.round(ms / 1000);
+  if (s < 60) return s + ' s ago';
+  const m = Math.round(s / 60);
+  if (m < 60) return m + ' min ago';
+  const h = Math.floor(m / 60);
+  if (h < 48) return h + ' h ' + (m % 60) + ' min ago';
+  return Math.floor(h / 24) + ' days ago';
+}
+function median(a) {
+  const v = a.filter(isFinite).slice().sort((x, y) => x - y);
+  if (!v.length) return NaN;
+  const m = v.length >> 1;
+  return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+}
+function mad(a, med) {
+  const v = a.filter(isFinite);
+  if (v.length < 3) return NaN;
+  const m = isFinite(med) ? med : median(v);
+  return 1.4826 * median(v.map(x => Math.abs(x - m)));
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* fetch with timeout; never throws an unhandled rejection */
+async function getJSON(url, timeoutMs) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), timeoutMs || CFG.fetchTimeoutMs);
+  try {
+    const r = await fetch(url, { signal: ac.signal, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    return { ok: true, data: j };
+  } catch (e) {
+    const msg = (e && e.name === 'AbortError') ? 'timed out after ' + Math.round((timeoutMs || CFG.fetchTimeoutMs) / 1000) + ' s'
+              : (e && e.message) ? e.message : 'network error';
+    return { ok: false, error: msg };
+  } finally { clearTimeout(t); }
+}
+
+/* deterministic PRNG so the demo behaves identically every presentation */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function storeGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function storeSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+
+/* ------------------------------ 3. app state ----------------------------- */
+
+function freshCtx() {
+  return {
+    wx: Object.create(null),      // siteId -> {ok,series,current,fetchedAt,obsTime,error,cached}
+    quakes: { status: 'idle', features: [], fetchedAt: 0, error: '' },
+    sensor: {
+      channel: null, field: 1, status: 'none', error: '',
+      samples: [], fetchedAt: 0, lastTs: 0, cadenceMs: 0,
+      baseline: NaN, noise: NaN, dev: NaN, rate: NaN, health: 'NONE', healthWhy: ''
+    },
+    log: [],
+    lastState: Object.create(null)
+  };
+}
+
+const APP = {
+  mode: 'live',
+  tab: 'situation',
+  siteId: 'kotrupi',
+  sites: BASE_SITES.slice(),
+  live: freshCtx(),
+  sim: null,
+  timers: { wx: 0, sensor: 0, clock: 0, demo: 0 },
+  demo: { i: 0, playing: false, speed: 1, frames: [], phases: [] },
+  openDetail: null,
+  reports: Object.create(null),   // siteId -> [{t, sign, note}], operator-entered, never simulated, never auto-decided
+  measurements: [],               // AcuSearch soil-pit log entries, operator-entered
+  signPick: null
+};
+function ctx() { return APP.mode === 'demo' ? APP.sim : APP.live; }
+function isSim() { return APP.mode === 'demo'; }
+function site() { return APP.sites.find(s => s.id === APP.siteId) || APP.sites[0]; }
+
+function logEvent(kind, text, src) {
+  const c = ctx();
+  if (!c) return;
+  const e = { t: Date.now(), kind: kind, text: text, src: src || '', sim: isSim() };
+  c.log.unshift(e);
+  if (c.log.length > 260) c.log.length = 260;
+  if (APP.tab === 'log') renderLog();
+  const lm = $('#logMeta');
+  if (lm) lm.textContent = c.log.length + (isSim() ? ' simulated entries' : ' entries this session');
+}
+
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 3400);
+}
+
+/* --------------------- 4. rainfall series + threshold -------------------- */
+
+/* Build a clean daily series from an Open-Meteo payload. Returns null when the
+   payload cannot be trusted rather than guessing values. */
+function buildSeries(payload) {
+  if (!payload || !payload.daily || !Array.isArray(payload.daily.time) || !Array.isArray(payload.daily.precipitation_sum)) return null;
+  const time = payload.daily.time, mm = payload.daily.precipitation_sum;
+  if (time.length !== mm.length || time.length < 8) return null;
+  const today = istISODate(new Date());
+  let idx = time.indexOf(today);
+  if (idx < 0) {
+    /* fall back to the latest date not after today rather than a magic index */
+    for (let i = time.length - 1; i >= 0; i--) { if (time[i] <= today) { idx = i; break; } }
+  }
+  if (idx < 0) return null;
+  const vals = mm.map(v => (typeof v === 'number' && isFinite(v) && v >= 0 && v < 2000) ? v : null);
+  return { dates: time.slice(), mm: vals, todayIdx: idx };
+}
+
+function sumWindow(series, endIdx, days) {
+  let s = 0, miss = 0, n = 0;
+  for (let i = endIdx - days + 1; i <= endIdx; i++) {
+    if (i < 0) { miss++; continue; }
+    const v = series.mm[i];
+    if (v === null || v === undefined) miss++; else { s += v; n++; }
+  }
+  return { sum: s, n: n, missing: miss };
+}
+
+function evaluateThreshold(series) {
+  if (!series) return null;
+  const i = series.todayIdx;
+  const rows = [];
+  let maxRatio = 0, maxD = null, anyExceed = false;
+  for (const D of THRESH.durations) {
+    const w = sumWindow(series, i, D);
+    if (w.n < D) { rows.push({ D, cum: null, I: null, thr: idThreshold(D), ratio: null, missing: w.missing }); continue; }
+    const I = w.sum / D;
+    const thr = idThreshold(D);
+    const ratio = I / thr;
+    if (ratio > maxRatio) { maxRatio = ratio; maxD = D; }
+    if (ratio >= 1) anyExceed = true;
+    rows.push({ D, cum: w.sum, I, thr, ratio, missing: 0 });
+  }
+  const ante = sumWindow(series, i - 1, THRESH.anteDays);
+  const r24 = series.mm[i];
+  const r72 = sumWindow(series, i, 3);
+  const cover = rows.filter(r => r.ratio !== null).length;
+  return {
+    rows, maxRatio, maxD, anyExceed,
+    ante30: ante.n >= THRESH.anteDays - 3 ? ante.sum : null,
+    anteMissing: ante.missing,
+    r24: (r24 === null || r24 === undefined) ? null : r24,
+    r72: r72.n >= 3 ? r72.sum : null,
+    coverage: cover / THRESH.durations.length
+  };
+}
+
+/* Combine the independent evidence channels into a state. The channels are
+   never averaged into a single score: the rule below is the whole logic. */
+function computeState() {
+  const c = ctx(), s = site();
+  const w = c.wx[s.id];
+  const out = {
+    state: 'NODATA', why: '', reasons: [], stale: false, cached: false,
+    ev: null, series: null, sensorUsed: false
+  };
+  if (!w || !w.ok || !w.series) {
+    out.why = w && w.error
+      ? 'Rainfall could not be read for this site (' + w.error + '). The state is unknown, which is not the same as safe.'
+      : 'No rainfall data has been received for this site yet.';
+    return out;
+  }
+  const age = Date.now() - w.fetchedAt;
+  out.cached = !!w.cached;
+  if (age > CFG.staleFailMs) {
+    out.why = 'The last successful rainfall read for this site was ' + ageStr(age) + '. That is too old to describe current conditions, so the state is reported as unknown rather than carried forward.';
+    out.stale = true;
+    return out;
+  }
+  if (age > CFG.staleWarnMs) out.stale = true;
+
+  const ev = evaluateThreshold(w.series);
+  out.ev = ev; out.series = w.series;
+  if (!ev || ev.coverage < 0.5) {
+    out.why = 'The rainfall series for this site has too many gaps to evaluate the threshold at enough durations.';
+    return out;
+  }
+
+  const sensorAnom = (c.sensor.status === 'ok' && c.sensor.health === 'ANOMALY' && c.sensor.siteId === s.id);
+  out.sensorUsed = (c.sensor.status === 'ok');
+
+  let st;
+  if (!ev.anyExceed) {
+    st = 'NORMAL';
+    out.reasons.push({ ok: false, text: 'No duration from 1 to 10 days has reached the threshold. The highest is ' + num(ev.maxRatio, 2) + '\u00d7 at ' + (ev.maxD || '\u2014') + ' day' + (ev.maxD === 1 ? '' : 's') + '.' });
+  } else if (ev.maxRatio >= 2 || (ev.ante30 !== null && ev.ante30 >= THRESH.anteMm)) {
+    st = 'WATCH';
+    out.reasons.push({ ok: true, text: 'Threshold exceeded at ' + ev.maxD + '-day duration, ' + num(ev.maxRatio, 2) + '\u00d7 the curve.' });
+    if (ev.ante30 !== null && ev.ante30 >= THRESH.anteMm)
+      out.reasons.push({ ok: true, text: '30-day antecedent rainfall ' + num(ev.ante30, 0) + ' mm, at or above the ' + THRESH.anteMm + ' mm the source paper found sufficient to trigger.' });
+  } else {
+    st = 'MONITOR';
+    out.reasons.push({ ok: true, text: 'Threshold exceeded at ' + ev.maxD + '-day duration, ' + num(ev.maxRatio, 2) + '\u00d7 the curve \u2014 inside the band where landslides have occurred, but not strongly.' });
+  }
+  if (st === 'WATCH' && sensorAnom) {
+    st = 'WARNING';
+    out.reasons.push({ ok: true, text: 'The ground instrument on this slope has moved beyond its own noise band at the same time. Two independent signals agree.' });
+  } else if (st === 'WATCH') {
+    out.reasons.push({ ok: false, text: c.sensor.status === 'ok'
+      ? 'The ground instrument on this slope is within its noise band. No second independent signal, so this stops at WATCH.'
+      : 'No ground instrument is reporting for this slope, so WARNING is unreachable here by design.' });
+  }
+  out.state = st;
+  return out;
+}
+/* ------------------------------ 5. charts -------------------------------- */
+/* Hand-rolled SVG. preserveAspectRatio is left at its default so text is not
+   sheared - the previous build used preserveAspectRatio="none", which stretched
+   every label. Charts always render a labelled empty state rather than nothing. */
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+function sv(tag, a) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in a) if (a[k] !== null && a[k] !== undefined) n.setAttribute(k, a[k]);
+  return n;
+}
+function svText(x, y, s, a) {
+  const n = sv('text', Object.assign({ x, y, 'font-size': 10, fill: '#646E76', 'font-family': 'ui-monospace,SFMono-Regular,Menlo,monospace' }, a || {}));
+  n.textContent = s;
+  return n;
+}
+function chartEmpty(svg, msg) {
+  clear(svg);
+  const vb = svg.viewBox.baseVal;
+  svg.appendChild(svText(vb.width / 2, vb.height / 2, msg, { 'text-anchor': 'middle', 'font-size': 12.5, fill: '#646E76' }));
+}
+
+function drawRainChart(svg, series, cap) {
+  clear(svg);
+  if (!series) { chartEmpty(svg, 'No rainfall series \u2014 the feed has not returned usable data'); cap.textContent = ''; return; }
+  const W = 700, H = 220, P = { l: 40, r: 12, t: 12, b: 34 };
+  const i = series.todayIdx;
+  const from = Math.max(0, i - 20), to = Math.min(series.mm.length - 1, i + 5);
+  const vals = [], labs = [];
+  for (let k = from; k <= to; k++) { vals.push(series.mm[k]); labs.push(series.dates[k]); }
+  const maxV = Math.max(10, ...vals.filter(v => v !== null && isFinite(v)));
+  const n = vals.length;
+  const bw = (W - P.l - P.r) / n;
+  const x = k => P.l + k * bw;
+  const y = v => H - P.b - (v / maxV) * (H - P.t - P.b);
+
+  for (let g = 0; g <= 4; g++) {
+    const v = (maxV / 4) * g;
+    svg.appendChild(sv('line', { x1: P.l, x2: W - P.r, y1: y(v), y2: y(v), stroke: '#EAEDEC', 'stroke-width': 1 }));
+    svg.appendChild(svText(P.l - 6, y(v) + 3.5, String(Math.round(v)), { 'text-anchor': 'end', 'font-size': 9.5 }));
+  }
+  svg.appendChild(svText(P.l - 6, P.t - 2, 'mm', { 'text-anchor': 'end', 'font-size': 9.5 }));
+
+  vals.forEach((v, k) => {
+    const future = (from + k) > i;
+    if (v === null || !isFinite(v)) {
+      svg.appendChild(sv('rect', { x: x(k) + 1.5, y: H - P.b - 6, width: Math.max(1, bw - 3), height: 6, fill: '#D8DDDC' }));
+      return;
+    }
+    const h = Math.max(v > 0 ? 1.5 : 0, (H - P.b) - y(v));
+    svg.appendChild(sv('rect', {
+      x: x(k) + 1.5, y: y(v), width: Math.max(1, bw - 3), height: h, rx: 1.5,
+      fill: future ? '#FFFFFF' : '#12505E', stroke: future ? '#12505E' : 'none',
+      'stroke-width': future ? 1 : 0, 'stroke-dasharray': future ? '2 2' : null
+    }));
+  });
+  /* today divider */
+  const dx = x(i - from + 1);
+  svg.appendChild(sv('line', { x1: dx, x2: dx, y1: P.t, y2: H - P.b, stroke: '#B8460F', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }));
+  svg.appendChild(svText(dx - 4, P.t + 9, 'observed', { 'text-anchor': 'end', 'font-size': 9.5, fill: '#B8460F' }));
+  svg.appendChild(svText(dx + 4, P.t + 9, 'forecast', { 'font-size': 9.5, fill: '#B8460F' }));
+  svg.appendChild(sv('line', { x1: P.l, x2: W - P.r, y1: H - P.b, y2: H - P.b, stroke: '#C4CCCA', 'stroke-width': 1 }));
+
+  const every = n > 18 ? 3 : 2;
+  labs.forEach((d, k) => {
+    if (k % every) return;
+    svg.appendChild(svText(x(k) + bw / 2, H - P.b + 14, d.slice(8) + '/' + d.slice(5, 7), { 'text-anchor': 'middle', 'font-size': 9 }));
+  });
+  const missing = vals.filter(v => v === null).length;
+  cap.textContent = 'Daily precipitation total in millimetres, ' + labs[0] + ' to ' + labs[labs.length - 1] +
+    '. Solid bars are past days from the model archive; dashed outlines are forecast. ' +
+    (missing ? missing + ' day(s) had no value and are drawn as short grey stubs, not as zero.' : 'No missing days in this window.');
+}
+
+function drawIdChart(svg, ev, cap, inDomain) {
+  clear(svg);
+  if (!ev) { chartEmpty(svg, 'Threshold screen needs a rainfall series'); cap.textContent = ''; return; }
+  const W = 700, H = 260, P = { l: 46, r: 14, t: 16, b: 42 };
+  const pts = ev.rows.filter(r => r.I !== null);
+  const maxI = Math.max(12, ...pts.map(p => p.I), idThreshold(1) * 1.4);
+  const x = D => P.l + ((D - 1) / 9) * (W - P.l - P.r);
+  const y = I => H - P.b - (I / maxI) * (H - P.t - P.b);
+
+  for (let g = 0; g <= 4; g++) {
+    const v = (maxI / 4) * g;
+    svg.appendChild(sv('line', { x1: P.l, x2: W - P.r, y1: y(v), y2: y(v), stroke: '#EAEDEC' }));
+    svg.appendChild(svText(P.l - 6, y(v) + 3.5, String(Math.round(v)), { 'text-anchor': 'end', 'font-size': 9.5 }));
+  }
+  /* threshold curve */
+  let d = '';
+  for (let D = 1; D <= 10; D += 0.25) d += (d ? 'L' : 'M') + x(D).toFixed(1) + ' ' + y(idThreshold(D)).toFixed(1) + ' ';
+  svg.appendChild(sv('path', { d: d + 'L' + x(10) + ' ' + (H - P.b) + ' L' + x(1) + ' ' + (H - P.b) + ' Z', fill: '#16713F', opacity: 0.06 }));
+  svg.appendChild(sv('path', { d, fill: 'none', stroke: '#8F5E00', 'stroke-width': 2, 'stroke-dasharray': inDomain ? null : '5 3' }));
+  svg.appendChild(svText(x(6.4), y(idThreshold(6.4)) - 8, 'threshold  I = 7.20 \u00b7 D' + '\u207B\u2070\u00b7\u00b2\u2076' + (inDomain ? '' : '  (extrapolated)'), { 'font-size': 10, fill: '#8F5E00', 'text-anchor': 'middle' }));
+
+  pts.forEach(p => {
+    const over = p.ratio >= 1;
+    svg.appendChild(sv('line', { x1: x(p.D), x2: x(p.D), y1: y(p.I), y2: y(idThreshold(p.D)), stroke: over ? '#B8460F' : '#C4CCCA', 'stroke-width': 1, 'stroke-dasharray': '2 2' }));
+    svg.appendChild(sv('circle', { cx: x(p.D), cy: y(p.I), r: 5.5, fill: over ? '#B8460F' : '#FFFFFF', stroke: over ? '#B8460F' : '#12505E', 'stroke-width': 2 }));
+    svg.appendChild(svText(x(p.D), y(p.I) - 11, num(p.ratio, 2) + '\u00d7', { 'text-anchor': 'middle', 'font-size': 9.5, fill: over ? '#B8460F' : '#49525A', 'font-weight': 700 }));
+  });
+  svg.appendChild(sv('line', { x1: P.l, x2: W - P.r, y1: H - P.b, y2: H - P.b, stroke: '#C4CCCA' }));
+  THRESH.durations.forEach(D => svg.appendChild(svText(x(D), H - P.b + 15, String(D), { 'text-anchor': 'middle', 'font-size': 10 })));
+  svg.appendChild(svText((P.l + W - P.r) / 2, H - 8, 'rainfall duration, days', { 'text-anchor': 'middle', 'font-size': 10.5 }));
+  svg.appendChild(svText(P.l - 6, P.t - 3, 'mm/day', { 'text-anchor': 'end', 'font-size': 9.5 }));
+  cap.textContent = 'Mean intensity over each duration ending today, against the threshold curve. Filled points are above the curve. '
+    + (inDomain ? 'This site is inside the area the curve was fitted to.' : 'Dashed curve: this site is outside the Shimla area the curve was fitted to, so the screen is an extrapolation.');
+}
+
+function drawTiltChart(svg, s, cap) {
+  clear(svg);
+  if (!s || !s.samples || s.samples.length < 2) {
+    chartEmpty(svg, s && s.status === 'none' ? 'No channel connected' : 'Waiting for at least two samples');
+    cap.textContent = ''; return;
+  }
+  const W = 700, H = 220, P = { l: 48, r: 14, t: 14, b: 32 };
+  const pts = s.samples.slice(-120);
+  const vs = pts.map(p => p.v);
+  const bl = s.baseline, nz = isFinite(s.noise) ? Math.max(s.noise, 0.01) : 0.02;
+  let lo = Math.min(...vs), hi = Math.max(...vs);
+  if (isFinite(bl)) { lo = Math.min(lo, bl - 4 * nz); hi = Math.max(hi, bl + 4 * nz); }
+  if (hi - lo < 0.05) { const m = (hi + lo) / 2; lo = m - 0.025; hi = m + 0.025; }
+  const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t || (t0 + 1);
+  const x = t => P.l + ((t - t0) / Math.max(1, t1 - t0)) * (W - P.l - P.r);
+  const y = v => H - P.b - ((v - lo) / (hi - lo)) * (H - P.t - P.b);
+
+  if (isFinite(bl)) {
+    svg.appendChild(sv('rect', { x: P.l, y: y(bl + 3 * nz), width: W - P.l - P.r, height: Math.max(2, y(bl - 3 * nz) - y(bl + 3 * nz)), fill: '#16713F', opacity: 0.09 }));
+    svg.appendChild(sv('line', { x1: P.l, x2: W - P.r, y1: y(bl), y2: y(bl), stroke: '#16713F', 'stroke-width': 1.2, 'stroke-dasharray': '4 3' }));
+    svg.appendChild(svText(W - P.r - 2, y(bl) - 5, 'baseline ' + num(bl, 3) + '\u00b0', { 'text-anchor': 'end', 'font-size': 9.5, fill: '#16713F' }));
+  }
+  for (let g = 0; g <= 3; g++) {
+    const v = lo + ((hi - lo) / 3) * g;
+    svg.appendChild(sv('line', { x1: P.l, x2: W - P.r, y1: y(v), y2: y(v), stroke: '#EFF1F0' }));
+    svg.appendChild(svText(P.l - 6, y(v) + 3.5, num(v, 2), { 'text-anchor': 'end', 'font-size': 9.5 }));
+  }
+  /* break the line across gaps larger than 3x the cadence rather than bridging them */
+  const gapMs = Math.max(90000, (s.cadenceMs || 60000) * 3);
+  let d = '', prev = null;
+  pts.forEach(p => {
+    if (prev !== null && (p.t - prev) > gapMs) { d += 'M' + x(p.t).toFixed(1) + ' ' + y(p.v).toFixed(1) + ' '; }
+    else d += (d ? 'L' : 'M') + x(p.t).toFixed(1) + ' ' + y(p.v).toFixed(1) + ' ';
+    prev = p.t;
+  });
+  svg.appendChild(sv('path', { d, fill: 'none', stroke: '#12505E', 'stroke-width': 1.8, 'stroke-linejoin': 'round' }));
+  const last = pts[pts.length - 1];
+  svg.appendChild(sv('circle', { cx: x(last.t), cy: y(last.v), r: 4, fill: s.health === 'ANOMALY' ? '#A81C16' : '#12505E' }));
+  svg.appendChild(sv('line', { x1: P.l, x2: W - P.r, y1: H - P.b, y2: H - P.b, stroke: '#C4CCCA' }));
+  svg.appendChild(svText(P.l, H - P.b + 14, istTime(new Date(t0)), { 'font-size': 9.5 }));
+  svg.appendChild(svText(W - P.r, H - P.b + 14, istTime(new Date(t1)) + ' IST', { 'text-anchor': 'end', 'font-size': 9.5 }));
+  svg.appendChild(svText(P.l - 6, P.t - 2, 'deg', { 'text-anchor': 'end', 'font-size': 9.5 }));
+  cap.textContent = pts.length + ' samples plotted. Shaded band is baseline \u00b1 3 \u00d7 the noise this channel actually shows ('
+    + num(nz, 3) + '\u00b0). Gaps in the feed are drawn as breaks, not interpolated.';
+}
+
+/* schematic site map */
+function drawSiteMap() {
+  const svg = $('#siteMap');
+  clear(svg);
+  const W = 700, H = 420, P = 46;
+  const lats = APP.sites.map(s => s.lat), lons = APP.sites.map(s => s.lon);
+  const la0 = Math.min(...lats) - 0.35, la1 = Math.max(...lats) + 0.35;
+  const lo0 = Math.min(...lons) - 0.35, lo1 = Math.max(...lons) + 0.35;
+  const x = lo => P + ((lo - lo0) / (lo1 - lo0)) * (W - 2 * P);
+  const y = la => H - P - ((la - la0) / (la1 - la0)) * (H - 2 * P);
+  for (let g = 0; g <= 4; g++) {
+    svg.appendChild(sv('line', { x1: P, x2: W - P, y1: P + g * (H - 2 * P) / 4, y2: P + g * (H - 2 * P) / 4, stroke: '#EEF1F0' }));
+    svg.appendChild(sv('line', { y1: P, y2: H - P, x1: P + g * (W - 2 * P) / 4, x2: P + g * (W - 2 * P) / 4, stroke: '#EEF1F0' }));
+  }
+  svg.appendChild(sv('rect', { x: P, y: P, width: W - 2 * P, height: H - 2 * P, fill: 'none', stroke: '#C4CCCA' }));
+  svg.appendChild(svText(P, H - P + 16, num(lo0, 2) + '\u00b0E', { 'font-size': 9.5 }));
+  svg.appendChild(svText(W - P, H - P + 16, num(lo1, 2) + '\u00b0E', { 'text-anchor': 'end', 'font-size': 9.5 }));
+  svg.appendChild(svText(P - 6, H - P, num(la0, 2) + '\u00b0N', { 'text-anchor': 'end', 'font-size': 9.5 }));
+  svg.appendChild(svText(P - 6, P + 4, num(la1, 2) + '\u00b0N', { 'text-anchor': 'end', 'font-size': 9.5 }));
+
+  const COL = { NORMAL: '#16713F', MONITOR: '#8F5E00', WATCH: '#B8460F', WARNING: '#A81C16', NODATA: '#5F6B73' };
+  APP.sites.forEach(s => {
+    const st = siteStateCache[s.id] || 'NODATA';
+    const g = sv('g', { class: 'mapnode', tabindex: '0', role: 'button', 'aria-label': s.name + ', ' + STATES[st].word });
+    const cx = x(s.lon), cy = y(s.lat);
+    g.appendChild(sv('circle', { cx, cy, r: 16, class: 'hit' }));
+    if (s.id === APP.siteId) g.appendChild(sv('circle', { cx, cy, r: 13, fill: 'none', stroke: '#12505E', 'stroke-width': 2 }));
+    if (s.kind === 'slope') {
+      g.appendChild(sv('path', { d: 'M' + cx + ' ' + (cy - 8) + 'L' + (cx + 7.5) + ' ' + (cy + 6) + 'L' + (cx - 7.5) + ' ' + (cy + 6) + 'Z', fill: COL[st], stroke: '#fff', 'stroke-width': 1.4 }));
+    } else {
+      g.appendChild(sv('rect', { x: cx - 6.5, y: cy - 6.5, width: 13, height: 13, rx: 2, fill: COL[st], stroke: '#fff', 'stroke-width': 1.4 }));
+    }
+    const lab = svText(cx, cy + 22, s.name, { 'text-anchor': 'middle', 'font-size': 10.5, fill: '#15181B', 'font-weight': 650, 'font-family': 'ui-sans-serif,system-ui,sans-serif' });
+    g.appendChild(lab);
+    g.appendChild(svText(cx, cy + 34, STATES[st].word, { 'text-anchor': 'middle', 'font-size': 9, fill: COL[st], 'font-weight': 700 }));
+    const pick = () => { APP.siteId = s.id; $('#siteSel').value = s.id; renderAll(); go('situation'); };
+    g.addEventListener('click', pick);
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    svg.appendChild(g);
+  });
+  svg.appendChild(svText(W - P, P - 12, '\u25B2 documented slope   \u25A0 town / district screen', { 'text-anchor': 'end', 'font-size': 9.5 }));
+}
+
+/* ------------------------------ 6. rendering ----------------------------- */
+
+const siteStateCache = Object.create(null);
+
+function pill(kind, label) {
+  const map = { live: 'p-live', derived: 'p-derived', ref: 'p-ref', sensor: 'p-sensor', sim: 'p-sim', exp: 'p-exp', prop: 'p-prop', none: 'p-none', report: 'p-report' };
+  const txt = { live: 'LIVE', derived: 'DERIVED', ref: 'REFERENCE', sensor: 'SENSOR', sim: 'SIMULATED', exp: 'EXPERIMENTAL', prop: 'PROPOSED', none: 'NOT CONNECTED', report: 'REPORT' };
+  return el('span', { class: 'pill ' + (map[kind] || 'p-none'), text: label || txt[kind] || kind });
+}
+
+let lastRenderedState = null;
+
+function renderSituation() {
+  const s = site(), c = ctx(), r = computeState();
+  siteStateCache[s.id] = r.state;
+  const S = STATES[r.state];
+
+  /* headline */
+  const nameEl = $('#stateName');
+  nameEl.className = 'state-name ' + S.cls + (lastRenderedState && lastRenderedState !== r.state ? ' changed' : '');
+  $('#stateGlyph').textContent = S.glyph;
+  $('#stateWord').textContent = S.word;
+  const lad = $('#ladder');
+  lad.className = 'ladder ' + S.cls;
+  $$('.seg', lad).forEach(sg => sg.classList.toggle('fill', Number(sg.dataset.lv) <= S.lv));
+  $('#ladderCap').textContent = S.lv + ' / 4';
+
+  let sub;
+  if (r.state === 'NODATA') sub = r.why;
+  else if (r.state === 'NORMAL') sub = 'Rainfall at ' + s.name + ' has not reached the historical landslide band at any duration from one to ten days.';
+  else if (r.state === 'MONITOR') sub = 'Rainfall at ' + s.name + ' has entered the band in which landslides have historically occurred here. Keep watching; nothing else has changed.';
+  else if (r.state === 'WATCH') sub = 'Rainfall at ' + s.name + ' is well inside the historical landslide band. This is the point to physically check the slope and the drainage.';
+  else sub = 'Rainfall and the ground instrument at ' + s.name + ' agree independently. This is the strongest state this prototype can produce.';
+  $('#stateSub').textContent = sub;
+
+  const w = c.wx[s.id];
+  const bits = [];
+  if (w && w.ok) {
+    bits.push('rainfall read ' + ageStr(Date.now() - w.fetchedAt));
+    if (w.obsTime) bits.push('model time ' + istTime(new Date(w.obsTime)) + ' IST');
+    if (w.cached) bits.push('SERVED FROM CACHE');
+    if (r.stale) bits.push('STALE');
+  }
+  if (isSim()) bits.unshift('SIMULATED');
+  $('#stateAge').textContent = bits.join('  \u00b7  ');
+
+  if (lastRenderedState && lastRenderedState !== r.state) {
+    logEvent('state', 'Site state changed ' + lastRenderedState + ' \u2192 ' + r.state + ' at ' + s.name + '.',
+      r.reasons.filter(x => x.ok).map(x => x.text).join(' '));
+  }
+  lastRenderedState = r.state;
+
+  renderEvidence(r, s, c, w);
+
+  /* rainfall chart */
+  drawRainChart($('#chRain'), r.series, $('#chRainCap'));
+  clear($('#rainMeta'));
+  $('#rainMeta').appendChild(pill(isSim() ? 'sim' : 'live'));
+  $('#rainMeta').appendChild(document.createTextNode(' Open-Meteo grid'));
+
+  drawIdChart($('#chId'), r.ev, $('#chIdCap'), s.inDomain);
+  renderIdTable(r.ev, s);
+  renderQuakes();
+  renderSeason();
+  drawSiteMap();
+  renderSiteList();
+  renderSignPicker();
+  renderReports();
+}
+
+function renderEvidence(r, s, c, w) {
+  const box = $('#evid');
+  clear(box);
+  const ev = r.ev;
+  const rows = [];
+
+  rows.push({
+    id: 'rain',
+    mark: w && w.ok ? '\u25CF' : '\u25CB',
+    cls: w && w.ok ? 'st-NORMAL' : 'st-NODATA',
+    k: 'Rainfall at this coordinate',
+    tags: [isSim() ? 'sim' : 'live'],
+    v: (!w || !w.ok) ? 'unavailable'
+      : num(ev && ev.r24 !== null ? ev.r24 : NaN, 1) + ' mm today   \u00b7   ' + num(ev && ev.r72 !== null ? ev.r72 : NaN, 1) + ' mm / 72 h   \u00b7   ' + (ev && ev.ante30 !== null ? num(ev.ante30, 0) + ' mm / 30 d' : '30 d n/a'),
+    why: (!w || !w.ok) ? (w && w.error ? 'Last attempt failed: ' + w.error : 'No attempt has completed yet.')
+      : 'Open-Meteo numerical weather model sampled at ' + num(s.lat, 4) + '\u00b0N ' + num(s.lon, 4) + '\u00b0E. Past days come from the model archive, not from an IMD rain gauge, so treat them as an estimate of what fell rather than a measurement.',
+    right: w && w.ok ? ageStr(Date.now() - w.fetchedAt) : '\u2014',
+    detail: 'rain'
+  });
+
+  rows.push({
+    id: 'thr',
+    mark: !ev ? '\u25CB' : (ev.anyExceed ? '\u25B2' : '\u2713'),
+    cls: !ev ? 'st-NODATA' : (ev.maxRatio >= 2 ? 'st-WATCH' : ev.anyExceed ? 'st-MONITOR' : 'st-NORMAL'),
+    k: 'Intensity\u2013duration threshold',
+    tags: ['derived', 'exp'],
+    v: !ev ? 'not evaluated' : 'peak ' + num(ev.maxRatio, 2) + '\u00d7 threshold at ' + (ev.maxD || '\u2014') + ' day' + (ev.maxD === 1 ? '' : 's'),
+    why: !ev ? 'Needs a rainfall series.' :
+      'I = 7.20\u00b7D\u207B\u2070\u00b7\u00b2\u2076 from 31 years of Shimla landslide and rainfall records. '
+      + (s.inDomain ? 'This site is inside the fitted area.' : 'Applied outside the fitted area, so this is an extrapolation and the ratio should be read as relative, not absolute.'),
+    right: THRESH.durations.length + ' durations',
+    detail: 'thr'
+  });
+
+  const anteOk = ev && ev.ante30 !== null;
+  rows.push({
+    id: 'ante',
+    mark: !anteOk ? '\u25CB' : (ev.ante30 >= THRESH.anteMm ? '\u25B2' : '\u2713'),
+    cls: !anteOk ? 'st-NODATA' : (ev.ante30 >= THRESH.anteMm ? 'st-WATCH' : 'st-NORMAL'),
+    k: 'Antecedent wetness, 30 days',
+    tags: ['derived'],
+    v: !anteOk ? 'incomplete series' : num(ev.ante30, 0) + ' mm  (trigger level ' + THRESH.anteMm + ' mm)',
+    why: 'The source paper found 110 mm of rain over the preceding 30 days sufficient to trigger landslides in the study area. Antecedent rain matters because it governs pore-water pressure, which is what actually reduces slope strength.',
+    right: anteOk ? num(100 * ev.ante30 / THRESH.anteMm, 0) + '%' : '\u2014',
+    detail: 'ante'
+  });
+
+  const sen = c.sensor;
+  const senOk = sen.status === 'ok';
+  rows.push({
+    id: 'sensor',
+    mark: !senOk ? '\u25CB' : (sen.health === 'ANOMALY' ? '\u25B2' : sen.health === 'HEALTHY' ? '\u2713' : '!'),
+    cls: !senOk ? 'st-NODATA' : (sen.health === 'ANOMALY' ? 'st-WARNING' : sen.health === 'HEALTHY' ? 'st-NORMAL' : 'st-MONITOR'),
+    k: 'Ground instrument on this slope',
+    tags: [senOk ? (isSim() ? 'sim' : 'sensor') : 'none', 'exp'],
+    v: !senOk ? (sen.status === 'none' ? 'no channel connected' : 'channel error') : sen.health + '  \u00b7  ' + (isFinite(sen.dev) ? (sen.dev >= 0 ? '+' : '') + num(sen.dev, 3) + '\u00b0 from baseline' : 'baseline not set'),
+    why: !senOk ? 'Absence of a sensor is not evidence of stability. Without one, this site can reach WATCH but never WARNING.'
+      : sen.healthWhy,
+    right: senOk && sen.lastTs ? ageStr(Date.now() - sen.lastTs) : '\u2014',
+    detail: 'sensor'
+  });
+
+  rows.push({
+    id: 'site',
+    mark: '\u25A0',
+    cls: 'st-NODATA',
+    k: 'What is known about this location',
+    tags: ['ref'],
+    v: s.kind === 'slope' ? 'documented individual slope' : (s.kind === 'custom' ? 'operator-supplied coordinate, no published basis' : 'settlement coordinate, district-scale screen'),
+    why: s.basis,
+    right: s.kind === 'slope' ? 'slope' : s.kind === 'custom' ? 'custom' : 'town',
+    detail: 'site'
+  });
+
+  rows.forEach(row => {
+    const b = el('button', { class: 'erow', type: 'button', 'aria-expanded': APP.openDetail === row.id ? 'true' : 'false' });
+    b.appendChild(el('span', { class: 'mark ' + row.cls, text: row.mark }));
+    const body = el('div', { class: 'body' });
+    const k = el('div', { class: 'k' }, [row.k]);
+    row.tags.forEach(t => k.appendChild(pill(t)));
+    body.appendChild(k);
+    body.appendChild(el('div', { class: 'v', text: row.v }));
+    body.appendChild(el('div', { class: 'why', text: row.why }));
+    b.appendChild(body);
+    b.appendChild(el('span', { class: 'right', text: row.right }));
+    b.addEventListener('click', () => openDetail(row.id, r, s, c));
+    box.appendChild(b);
+  });
+
+  /* the decision rule, always visible, in plain words */
+  const rule = el('div', { class: 'erow', style: 'grid-template-columns:1fr' });
+  const list = el('div', { class: 'body' });
+  list.appendChild(el('div', { class: 'k' }, ['Why this state']));
+  r.reasons.forEach(x => {
+    list.appendChild(el('div', { class: 'why', text: (x.ok ? '\u2713  ' : '\u25CB  ') + x.text }));
+  });
+  if (!r.reasons.length) list.appendChild(el('div', { class: 'why', text: r.why }));
+  rule.appendChild(list);
+  box.appendChild(rule);
+  if (APP.openDetail) openDetail(APP.openDetail, r, s, c, true);
+}
+
+function openDetail(id, r, s, c, keep) {
+  const box = $('#evidDetail'), inner = $('#evidDetailIn');
+  if (!keep && APP.openDetail === id) { APP.openDetail = null; box.classList.remove('open'); renderSituation(); return; }
+  APP.openDetail = id;
+  clear(inner);
+  const ev = r.ev, w = c.wx[s.id];
+  const add = (t) => inner.appendChild(el('p', { text: t }));
+  if (id === 'rain') {
+    add('Request: Open-Meteo forecast endpoint, latitude ' + num(s.lat, 4) + ', longitude ' + num(s.lon, 4) + ', daily precipitation_sum, past_days 31, forecast_days 6, timezone Asia/Kolkata.');
+    add('Open-Meteo returns modelled values for past days as well as future ones. They are not rain-gauge readings. For gauge observations at named Himachal stations, the India Meteorological Department bulletin is the authority; this tool does not have programmatic access to it.');
+    if (w && w.ok) {
+      const gaps = r.series ? r.series.mm.filter(v => v === null).length : 0;
+      add('This payload: ' + (r.series ? r.series.mm.length : 0) + ' days returned, ' + gaps + ' with no value, today index ' + (r.series ? r.series.todayIdx : '\u2014') + ' matched to ' + istISODate(new Date()) + ' in IST.');
+    }
+  } else if (id === 'thr') {
+    add('For each duration D the tool sums the daily rainfall over the D days ending today, divides by D to get mean intensity I, and compares I with 7.20 \u00b7 D^\u22120.26. The reported ratio is I divided by that threshold.');
+    add('Exceeding the curve does not mean a landslide will happen. The curve is a lower bound fitted to rainfall that did precede landslides; most rainfall above it produces nothing. What it usefully rules out is the opposite case: rainfall below the curve at every duration has historically not been enough on its own.');
+    add('The same paper reports Bayesian landslide probability rising from about 0.06 for one day of rainfall duration to near one at ten days. This tool deliberately does not print that as a percentage for a specific day, because the published figure is a duration-conditioned prior for the Shimla dataset, not a forecast for this site today.');
+  } else if (id === 'ante') {
+    add('Sum of daily precipitation over the 30 days before today, excluding today so it does not double-count the current event.');
+    if (ev) add('Days with no value in that window: ' + ev.anteMissing + '. If more than three are missing the figure is withheld rather than scaled up.');
+  } else if (id === 'sensor') {
+    add('This channel is polled every ' + Math.round(CFG.sensorPollMs / 1000) + ' s. Health is decided from the feed itself: sample count, actual cadence between timestamps, age of the newest sample, and the spread of the readings.');
+    add('Anomaly means the current inclination sits more than three times the channel\u2019s own measured noise away from its baseline, and has stayed there for the last three samples. That threshold is an engineering default. It has not been calibrated against any recorded slope failure, which is why the channel is labelled experimental.');
+    add('Full detail is on the Ground sensor screen.');
+  } else if (id === 'site') {
+    add(s.basis);
+    if (s.cites && s.cites.length) {
+      const p = el('p');
+      p.appendChild(document.createTextNode('Sources: '));
+      s.cites.forEach((n, i) => {
+        if (i) p.appendChild(document.createTextNode(', '));
+        const b = el('button', { class: 'linkish', type: 'button', text: '[' + n + ']' });
+        b.addEventListener('click', () => jumpSrc(n));
+        p.appendChild(b);
+      });
+      inner.appendChild(p);
+    }
+  }
+  box.classList.add('open');
+}
+
+function renderIdTable(ev, s) {
+  const t = $('#tblId');
+  clear(t);
+  const thead = el('thead');
+  const hr = el('tr');
+  ['Duration', 'Rain total', 'Mean intensity', 'Threshold', 'Ratio', 'Status'].forEach(h => hr.appendChild(el('th', { text: h })));
+  thead.appendChild(hr); t.appendChild(thead);
+  const tb = el('tbody');
+  if (!ev) {
+    const tr = el('tr'); tr.appendChild(el('td', { colspan: '6', text: 'No rainfall series available for this site.' })); tb.appendChild(tr);
+  } else ev.rows.forEach(r => {
+    const tr = el('tr');
+    tr.appendChild(el('td', { text: r.D + ' day' + (r.D === 1 ? '' : 's') }));
+    tr.appendChild(el('td', { class: 'n', text: r.cum === null ? '\u2014' : num(r.cum, 1) + ' mm' }));
+    tr.appendChild(el('td', { class: 'n', text: r.I === null ? '\u2014' : num(r.I, 2) + ' mm/d' }));
+    tr.appendChild(el('td', { class: 'n', text: num(r.thr, 2) + ' mm/d' }));
+    tr.appendChild(el('td', { class: 'n', text: r.ratio === null ? '\u2014' : num(r.ratio, 2) + '\u00d7' }));
+    tr.appendChild(el('td', { text: r.ratio === null ? 'no data (' + r.missing + ' days missing)' : (r.ratio >= 1 ? 'above curve' : 'below curve') }));
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+
+function renderQuakes() {
+  const box = $('#quakeBox'), c = ctx(), q = c.quakes;
+  clear(box);
+  if (q.status === 'loading') { box.appendChild(el('p', { class: 'lede', text: 'Requesting the USGS catalogue\u2026' })); return; }
+  if (q.status === 'error') {
+    box.appendChild(el('div', { class: 'note warn' }, ['USGS is not reachable right now (' + q.error + '). No substitute values are shown.']));
+    const b = el('button', { class: 'btn sm', type: 'button', text: 'Retry' });
+    b.addEventListener('click', () => fetchQuakes(true));
+    box.appendChild(b);
+    return;
+  }
+  if (q.status === 'idle') { box.appendChild(el('p', { class: 'lede', text: 'Not requested yet.' })); return; }
+  if (!q.features.length) {
+    box.appendChild(el('div', { class: 'note info' }, ['No earthquake of magnitude 2.5 or above was catalogued in this box in the last 90 days. That is a real zero from the feed, not a missing value \u2014 and it says nothing about slope stability.']));
+    return;
+  }
+  const maxM = Math.max(3, ...q.features.map(f => (f.properties && f.properties.mag) || 0));
+  const list = el('div');
+  q.features.slice(0, 8).forEach(f => {
+    const p = f.properties || {};
+    const row = el('div', { style: 'display:grid;grid-template-columns:64px 1fr 1fr;gap:9px;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px' });
+    row.appendChild(el('span', { class: 'num', style: 'color:var(--ink-3)', text: istDate(new Date(p.time)) }));
+    const track = el('div', { style: 'height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden' });
+    const pct = clamp(((p.mag || 0) / maxM) * 100, 5, 100);
+    track.appendChild(el('i', { style: 'display:block;height:100%;width:' + pct + '%;background:' + ((p.mag || 0) >= 4.5 ? '#A81C16' : (p.mag || 0) >= 3.5 ? '#8F5E00' : '#12505E') }));
+    row.appendChild(track);
+    row.appendChild(el('span', { class: 'num', style: 'font-size:11px;color:var(--ink-2)', text: 'M' + num(p.mag, 1) + '  ' + String(p.place || '').slice(0, 26) }));
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+  box.appendChild(el('p', { class: 'lede', style: 'margin-top:8px;font-size:11.5px;color:var(--ink-3)',
+    text: q.features.length + ' events, magnitude 2.5 and above, 29.8\u201333.6\u00b0N / 75.0\u201379.6\u00b0E, retrieved ' + ageStr(Date.now() - q.fetchedAt) + '.' }));
+  const a = el('a', { class: 'btn sm', href: 'https://earthquake.usgs.gov/earthquakes/map/', target: '_blank', rel: 'noopener noreferrer', text: 'Open the USGS map' });
+  box.appendChild(a);
+}
+
+function renderSeason() {
+  const box = $('#seasonBox');
+  clear(box);
+  const dl = el('dl', { class: 'kv' });
+  const add = (k, v) => { dl.appendChild(el('dt', { text: k })); dl.appendChild(el('dd', { text: v })); };
+  add('Deaths attributed to disasters and weather', '119');
+  add('Deaths in road accidents in the same period', '177');
+  add('Reported combined total', '296');
+  add('Injured', '520');
+  add('Cumulative assessed loss', '\u20b91,661.97 crore');
+  add('Roads blocked, morning of 12 Sep', '67');
+  add('\u2014 of which Mandi / Kullu / Kangra', '36 / 11 / 10');
+  box.appendChild(dl);
+  box.appendChild(el('div', { class: 'note' }, [
+    el('b', { text: 'Read the first three rows together. ' }),
+    'The 296 figure widely reported for this monsoon is a combined total. Road-accident deaths are the larger share of it and are not landslide deaths. An earlier version of this dashboard printed 296 under the label \u201cdead this monsoon\u201d next to live rainfall, which invited exactly the wrong inference. Period: 30 June to 11 September 2026, as reported from the State Emergency Operations Centre assessment.'
+  ]));
+  box.appendChild(el('div', { class: 'note' }, [
+    el('b', { text: 'Road-blockage counts move daily. ' }),
+    'The same reporting series gives 150 blocked roads on 1 September, 117 on 2 September, 92 on 5 September and 67 on 12 September. A per-district figure printed in an interface without its date is misleading within a week, so these are shown once, dated, and never presented as live.'
+  ]));
+  const p = el('p', { class: 'lede', style: 'font-size:11.5px' });
+  p.appendChild(document.createTextNode('Source '));
+  const b = el('button', { class: 'linkish', type: 'button', text: '[5]' });
+  b.addEventListener('click', () => jumpSrc(5));
+  p.appendChild(b);
+  p.appendChild(document.createTextNode('. This block is static reference text with a date on it. It does not update.'));
+  box.appendChild(p);
+}
+
+function renderSiteList() {
+  const box = $('#siteList');
+  clear(box);
+  const order = { WARNING: 0, WATCH: 1, MONITOR: 2, NODATA: 3, NORMAL: 4 };
+  const rows = APP.sites.slice().sort((a, b) => (order[siteStateCache[a.id] || 'NODATA'] - order[siteStateCache[b.id] || 'NODATA']));
+  rows.forEach(s => {
+    const st = siteStateCache[s.id] || 'NODATA';
+    const S = STATES[st];
+    const c = ctx(), w = c.wx[s.id];
+    const b = el('button', { class: 'sitebtn ' + S.cls, type: 'button', 'aria-current': s.id === APP.siteId ? 'true' : 'false' });
+    b.appendChild(el('span', { class: 'sq', text: S.glyph }));
+    const mid = el('span');
+    mid.appendChild(el('span', { class: 'nm', style: 'color:var(--ink);display:block', text: s.name }));
+    mid.appendChild(el('span', { class: 'ds', style: 'display:block', text: s.area }));
+    b.appendChild(mid);
+    const right = el('span', { class: 'rt' });
+    right.appendChild(el('span', { style: 'display:block;font-weight:700', text: S.word }));
+    if (w && w.ok && w.series) {
+      const ev = evaluateThreshold(w.series);
+      if (ev) right.appendChild(el('span', { style: 'display:block;color:var(--ink-3);font-size:10.5px', text: num(ev.maxRatio, 2) + '\u00d7 at ' + (ev.maxD || '\u2014') + ' d' }));
+    } else {
+      right.appendChild(el('span', { style: 'display:block;color:var(--ink-3);font-size:10.5px', text: w && w.error ? 'feed error' : 'no data' }));
+    }
+    b.appendChild(right);
+    b.addEventListener('click', () => { APP.siteId = s.id; $('#siteSel').value = s.id; APP.openDetail = null; lastRenderedState = null; renderAll(); go('situation'); });
+    box.appendChild(b);
+  });
+}
+
+/* ------------------------- 6b. local precursor reports -------------------- */
+/* Human-sourced, unverified, geotagged-by-site. Persisted in this browser only.
+   Deliberately kept out of computeState(): the crowdsourced Landslide Tracker
+   app's own developers documented test/duplicate/mistaken entries as a real
+   problem, so an anonymous report is shown, never auto-decided. Disabled
+   during a simulation so no invented report can be mistaken for a real one. */
+
+function signChip(sign, pressed, onPick) {
+  const c = el('button', { type: 'button', class: 'signchip', 'aria-pressed': pressed ? 'true' : 'false', text: sign.label });
+  c.title = sign.detail;
+  if (onPick) c.addEventListener('click', () => onPick(sign.id, c));
+  return c;
+}
+
+function renderSignPicker() {
+  const box = $('#signPick');
+  clear(box);
+  PRECURSOR_SIGNS.forEach(sign => {
+    box.appendChild(signChip(sign, APP.signPick === sign.id, id => {
+      APP.signPick = (APP.signPick === id) ? null : id;
+      renderSignPicker();
+    }));
+  });
+}
+
+function addReport() {
+  if (isSim()) { toast('Reports are switched off during a simulation, so a made-up entry can never look real.'); return; }
+  if (!APP.signPick) { toast('Pick which sign was seen first.'); return; }
+  const sign = PRECURSOR_SIGNS.find(s => s.id === APP.signPick);
+  const note = $('#repNote').value.trim().slice(0, 200);
+  const sId = site().id;
+  if (!APP.reports[sId]) APP.reports[sId] = [];
+  APP.reports[sId].unshift({ t: Date.now(), sign: sign.id, note });
+  if (APP.reports[sId].length > 50) APP.reports[sId].length = 50;
+  storeSet(CFG.reportsKey, APP.reports);
+  $('#repNote').value = '';
+  APP.signPick = null;
+  renderSignPicker();
+  logEvent('report', 'Local report added at ' + site().name + ': ' + sign.label + '.', 'Human-sourced, unverified. Not used in the automated state calculation.');
+  renderReports();
+}
+
+function renderReports() {
+  const box = $('#repBox');
+  if (!box) return;
+  clear(box);
+  const form = $('#repForm');
+  if (isSim()) {
+    if (form) form.style.display = 'none';
+    box.appendChild(el('div', { class: 'note info', text: 'Reports are disabled while a simulation is running, and no simulated report is ever shown here \u2014 this feature only ever reflects what a real person entered.' }));
+    return;
+  }
+  if (form) form.style.display = '';
+  const list = APP.reports[site().id] || [];
+  if (!list.length) {
+    box.appendChild(el('p', { class: 'lede', style: 'margin:0 0 6px', text: 'No reports for this site yet.' }));
+    return;
+  }
+  const ul = el('ul', { class: 'replist' });
+  list.slice(0, 8).forEach(r => {
+    const sign = PRECURSOR_SIGNS.find(s => s.id === r.sign);
+    const li = el('li');
+    li.appendChild(el('span', { class: 'rk', text: sign ? sign.label : r.sign }));
+    li.appendChild(document.createTextNode('  '));
+    li.appendChild(el('span', { class: 'rt', text: ageStr(Date.now() - r.t) }));
+    if (r.note) li.appendChild(el('div', { class: 'rn', text: r.note }));
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+  if (list.length > 8) box.appendChild(el('p', { class: 'small', style: 'color:var(--ink-3);margin-top:6px', text: '+ ' + (list.length - 8) + ' earlier report(s) for this site.' }));
+}
+
+/* ------------------------- 6c. Rescue / AcuSearch -------------------------- */
+/* A field-log tool for the one experiment the AcuSearch research found
+   defensible: measuring whether any phone-based signal survives realistic
+   burial at all, before anyone builds a detector on top of an unverified
+   premise. Every point plotted here was typed in by a person; nothing is
+   simulated, computed, or estimated. */
+
+function addMeasurement() {
+  const mod = $('#mlMod').value;
+  const depth = parseFloat($('#mlDepth').value);
+  const moist = $('#mlMoist').value;
+  const dist = parseFloat($('#mlDist').value);
+  const det = $('#mlDet').value === 'yes';
+  const note = $('#mlNote').value.trim().slice(0, 140);
+  if (!isFinite(depth) || depth < 0 || depth > 5) { toast('Enter a burial depth between 0 and 5 m.'); return; }
+  if (!isFinite(dist) || dist < 0 || dist > 50) { toast('Enter a lateral distance between 0 and 50 m.'); return; }
+  APP.measurements.unshift({ t: Date.now(), mod, depth, moist, dist, det, note });
+  storeSet(CFG.measKey, APP.measurements);
+  $('#mlNote').value = '';
+  renderRescueResults();
+  toast('Measurement logged.');
+}
+
+const MOD_LABEL = { wifi: 'Wi-Fi / BLE', audible: 'Audible tone', wired: 'Wired contact mic' };
+const MOD_COLOR = { wifi: '#1B5E8A', audible: '#8F5E00', wired: '#16713F' };
+const MOIST_MARK = { dry: 4, damp: 6, saturated: 9 };
+
+function drawMeasChart(svg, cap, rows) {
+  clear(svg);
+  if (!rows.length) { chartEmpty(svg, 'No measurements logged yet \u2014 that is a true state, not an error'); cap.textContent = ''; return; }
+  const W = 700, H = 240, P = { l: 46, r: 100, t: 16, b: 34 };
+  const maxDist = Math.max(10, ...rows.map(r => r.dist)) * 1.1;
+  const maxDepth = Math.max(1, ...rows.map(r => r.depth)) * 1.15;
+  const x = d => P.l + (d / maxDist) * (W - P.l - P.r);
+  const y = d => P.t + (d / maxDepth) * (H - P.t - P.b);
+  for (let g = 0; g <= 4; g++) {
+    const v = maxDist / 4 * g;
+    svg.appendChild(sv('line', { x1: x(v), x2: x(v), y1: P.t, y2: H - P.b, stroke: '#EAEDEC' }));
+    svg.appendChild(svText(x(v), H - P.b + 14, num(v, 1), { 'text-anchor': 'middle', 'font-size': 9.5 }));
+  }
+  svg.appendChild(svText((P.l + W - P.r) / 2, H - 6, 'lateral distance, m', { 'text-anchor': 'middle', 'font-size': 10.5 }));
+  svg.appendChild(svText(P.l - 6, P.t - 2, 'depth, m', { 'text-anchor': 'end', 'font-size': 9.5 }));
+  for (let g = 0; g <= 3; g++) {
+    const v = maxDepth / 3 * g;
+    svg.appendChild(svText(P.l - 6, y(v) + 3.5, num(v, 1), { 'text-anchor': 'end', 'font-size': 9.5 }));
+  }
+  rows.forEach(r => {
+    const cx = x(r.dist), cy = y(r.depth), col = MOD_COLOR[r.mod] || '#556360', rad = MOIST_MARK[r.moist] || 5;
+    svg.appendChild(sv('circle', { cx, cy, r: rad, fill: r.det ? col : '#FFFFFF', stroke: col, 'stroke-width': 2 }));
+  });
+  let lx = W - P.r + 10, ly = P.t + 6;
+  Object.keys(MOD_LABEL).forEach(k => {
+    svg.appendChild(sv('circle', { cx: lx + 5, cy: ly, r: 5, fill: MOD_COLOR[k], stroke: MOD_COLOR[k], 'stroke-width': 2 }));
+    svg.appendChild(svText(lx + 15, ly + 3.5, MOD_LABEL[k], { 'font-size': 10 }));
+    ly += 16;
+  });
+  svg.appendChild(svText(lx, ly + 6, 'filled = detected', { 'font-size': 9.5, fill: '#556360' }));
+  svg.appendChild(svText(lx, ly + 19, 'hollow = no signal', { 'font-size': 9.5, fill: '#556360' }));
+  svg.appendChild(svText(lx, ly + 32, 'bigger dot = wetter soil', { 'font-size': 9.5, fill: '#556360' }));
+  cap.textContent = rows.length + ' logged measurement' + (rows.length === 1 ? '' : 's') + '. Plot depth against lateral distance for each try; colour is signal type, dot size is soil wetness.';
+}
+
+function renderRescueResults() {
+  const meta = $('#measMeta'); if (!meta) return;
+  meta.textContent = APP.measurements.length + ' measurement' + (APP.measurements.length === 1 ? '' : 's');
+  drawMeasChart($('#chMeas'), $('#chMeasCap'), APP.measurements);
+  const t = $('#tblMeas'); clear(t);
+  const thead = el('thead'), hr = el('tr');
+  ['When', 'Signal', 'Depth', 'Soil', 'Distance', 'Result', 'Note'].forEach(h => hr.appendChild(el('th', { text: h })));
+  thead.appendChild(hr); t.appendChild(thead);
+  const tb = el('tbody');
+  if (!APP.measurements.length) {
+    const tr = el('tr'); tr.appendChild(el('td', { colspan: '7', text: 'Nothing logged yet.' })); tb.appendChild(tr);
+  } else APP.measurements.forEach(r => {
+    const tr = el('tr');
+    tr.appendChild(el('td', { text: ageStr(Date.now() - r.t) }));
+    tr.appendChild(el('td', { text: MOD_LABEL[r.mod] || r.mod }));
+    tr.appendChild(el('td', { class: 'n', text: num(r.depth, 1) + ' m' }));
+    tr.appendChild(el('td', { text: r.moist }));
+    tr.appendChild(el('td', { class: 'n', text: num(r.dist, 1) + ' m' }));
+    tr.appendChild(el('td', { text: r.det ? 'Detected' : 'No signal' }));
+    tr.appendChild(el('td', { text: r.note || '\u2014' }));
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+
+function renderRescueSignRef() {
+  const box = $('#signRef');
+  if (!box || box.dataset.done) return;
+  box.dataset.done = '1';
+  PRECURSOR_SIGNS.forEach(sign => {
+    const c = el('span', { class: 'signchip', style: 'cursor:default', text: sign.label });
+    c.title = sign.detail;
+    box.appendChild(c);
+  });
+}
+
+function exportMeasCSV() {
+  if (!APP.measurements.length) { toast('Nothing to copy yet.'); return; }
+  const rows = ['when_iso,signal,depth_m,soil,distance_m,detected,note'];
+  APP.measurements.forEach(r => {
+    rows.push([new Date(r.t).toISOString(), r.mod, r.depth, r.moist, r.dist, r.det ? 'yes' : 'no', '"' + (r.note || '').replace(/"/g, '""') + '"'].join(','));
+  });
+  const txt = rows.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('CSV copied \u2014 paste into a spreadsheet.'), () => toast('Clipboard is blocked here.'));
+  else toast('Clipboard is not available in this browser.');
+}
+
+function renderLog() {
+  const ul = $('#logList'), c = ctx();
+  clear(ul);
+  if (!c.log.length) {
+    ul.appendChild(el('li', {}, [el('time', { text: '\u2014' }), el('span', { class: 'what', text: 'Nothing has happened yet in this session.' })]));
+    return;
+  }
+  c.log.forEach(e => {
+    const li = el('li', { class: e.kind === 'state' ? 'hi' : '' });
+    li.appendChild(el('time', { datetime: new Date(e.t).toISOString(), text: istTime(new Date(e.t)) }));
+    const w = el('span', { class: 'what' });
+    w.appendChild(el('b', { text: e.text }));
+    if (e.src) w.appendChild(el('span', { class: 'src', text: e.src }));
+    li.appendChild(w);
+    ul.appendChild(li);
+  });
+  $('#logMeta').textContent = c.log.length + (isSim() ? ' simulated entries' : ' entries this session');
+}
+/* ------------------------------ 7. live fetching -------------------------- */
+
+function feedChip(id, dotCls, text) {
+  const d = $(id === 'rain' ? '#dRain' : id === 'seis' ? '#dSeis' : '#dSens');
+  const t = $(id === 'rain' ? '#tRain' : id === 'seis' ? '#tSeis' : '#tSens');
+  d.className = 'dot ' + (dotCls || '');
+  t.textContent = text;
+}
+
+function wxURL(sites) {
+  const lat = sites.map(s => s.lat).join(','), lon = sites.map(s => s.lon).join(',');
+  return 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
+    + '&daily=precipitation_sum&current=temperature_2m,relative_humidity_2m,precipitation'
+    + '&past_days=31&forecast_days=6&timezone=Asia%2FKolkata';
+}
+
+let wxInFlight = false;
+async function fetchWeather(userTriggered) {
+  if (isSim() || wxInFlight) return;
+  wxInFlight = true;
+  feedChip('rain', '', 'rainfall: fetching');
+  const sites = APP.sites.slice();
+  let payloads = null, mode = 'batch';
+  const batch = await getJSON(wxURL(sites));
+  if (batch.ok) {
+    const arr = Array.isArray(batch.data) ? batch.data : [batch.data];
+    if (arr.length === sites.length) payloads = arr;
+  }
+  if (!payloads) {
+    mode = 'per-site';
+    const res = await Promise.all(sites.map(s => getJSON(wxURL([s]))));
+    payloads = res.map(r => {
+      if (!r.ok) return { __err: r.error };
+      const d = Array.isArray(r.data) ? r.data[0] : r.data;
+      return d || { __err: 'empty payload' };
+    });
+  }
+  let ok = 0, fail = 0;
+  const now = Date.now();
+  sites.forEach((s, i) => {
+    const p = payloads[i];
+    const prev = APP.live.wx[s.id];
+    if (!p || p.__err) {
+      fail++;
+      APP.live.wx[s.id] = prev && prev.ok
+        ? Object.assign({}, prev, { error: p && p.__err ? p.__err : 'no payload' })   /* keep the last good read, still dated */
+        : { ok: false, error: (p && p.__err) || (batch.ok ? 'no payload' : batch.error), fetchedAt: 0 };
+      return;
+    }
+    const series = buildSeries(p);
+    if (!series) {
+      fail++;
+      APP.live.wx[s.id] = { ok: false, error: 'payload shape not recognised', fetchedAt: 0 };
+      return;
+    }
+    ok++;
+    APP.live.wx[s.id] = {
+      ok: true, series, current: p.current || null, fetchedAt: now,
+      obsTime: p.current && p.current.time ? Date.parse(p.current.time + '+05:30') : 0,
+      error: '', cached: false
+    };
+  });
+  wxInFlight = false;
+
+  if (ok) {
+    feedChip('rain', 'ok', 'rainfall: live \u00b7 ' + ok + '/' + sites.length + ' sites');
+    saveCache();
+    logEvent('feed', 'Rainfall refreshed for ' + ok + ' of ' + sites.length + ' sites.',
+      'Open-Meteo, ' + mode + ' request' + (fail ? ' \u00b7 ' + fail + ' site(s) failed' : ''));
+    if (userTriggered) toast('Rainfall refreshed for ' + ok + ' of ' + sites.length + ' sites.');
+  } else {
+    feedChip('rain', 'bad', 'rainfall: unreachable');
+    logEvent('feed', 'Rainfall fetch failed for every site.', batch.error || 'network');
+    if (userTriggered) toast('Rainfall feed is unreachable.');
+  }
+  if (!isSim()) renderAll();
+}
+
+async function fetchQuakes(userTriggered) {
+  if (isSim()) return;
+  APP.live.quakes.status = 'loading';
+  feedChip('seis', '', 'seismic: fetching');
+  renderQuakes();
+  const start = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+  const url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=' + start
+    + '&minlatitude=29.8&maxlatitude=33.6&minlongitude=75.0&maxlongitude=79.6&minmagnitude=2.5&orderby=time&limit=30';
+  const r = await getJSON(url);
+  if (r.ok && r.data && Array.isArray(r.data.features)) {
+    APP.live.quakes = { status: 'ok', features: r.data.features, fetchedAt: Date.now(), error: '' };
+    feedChip('seis', 'ok', 'seismic: live \u00b7 ' + r.data.features.length + ' events');
+    logEvent('feed', 'USGS catalogue returned ' + r.data.features.length + ' events, magnitude 2.5+, last 90 days.', 'USGS FDSN');
+    if (userTriggered) toast('Seismic catalogue refreshed.');
+  } else {
+    APP.live.quakes = { status: 'error', features: [], fetchedAt: Date.now(), error: r.error || 'bad payload' };
+    feedChip('seis', 'bad', 'seismic: unreachable');
+    logEvent('feed', 'USGS catalogue request failed.', r.error || 'bad payload');
+  }
+  if (!isSim()) renderQuakes();
+}
+
+/* cache: only weather, only so a field device shows something dated when offline */
+function saveCache() {
+  const out = {};
+  for (const id in APP.live.wx) {
+    const w = APP.live.wx[id];
+    if (w && w.ok) out[id] = { series: w.series, fetchedAt: w.fetchedAt, obsTime: w.obsTime };
+  }
+  storeSet(CFG.cacheKey, { at: Date.now(), wx: out });
+}
+function loadCache() {
+  const c = storeGet(CFG.cacheKey);
+  if (!c || !c.wx) return 0;
+  let n = 0;
+  for (const id in c.wx) {
+    const w = c.wx[id];
+    if (!w || !w.series) continue;
+    /* a cached series is only usable if its "today" is still today in IST */
+    const today = istISODate(new Date());
+    if (w.series.dates[w.series.todayIdx] !== today) continue;
+    APP.live.wx[id] = { ok: true, series: w.series, current: null, fetchedAt: w.fetchedAt, obsTime: w.obsTime, error: '', cached: true };
+    n++;
+  }
+  return n;
+}
+
+/* ------------------------------ 8. ground sensor -------------------------- */
+
+const SENSOR_RULES = { anomalySigma: 3, anomalySustain: 3, minAbsDeg: 0.05, noisyDeg: 0.25 };
+
+function analyseSensor(s) {
+  const n = s.samples.length;
+  s.dev = NaN; s.rate = NaN;
+  if (!n) { s.health = 'NO SAMPLES'; s.healthWhy = 'The channel responded but field ' + s.field + ' has no numeric values in it.'; return; }
+  const ts = s.samples.map(p => p.t);
+  const diffs = [];
+  for (let i = 1; i < ts.length; i++) diffs.push(ts[i] - ts[i - 1]);
+  s.cadenceMs = diffs.length ? median(diffs) : 0;
+  s.lastTs = ts[n - 1];
+  const age = Date.now() - s.lastTs;
+
+  /* baseline from the oldest half of the record, so a slope that is already
+     moving does not quietly redefine "normal" around its current position */
+  const half = s.samples.slice(0, Math.max(SENSOR_RULES.anomalySustain, Math.floor(n / 2)));
+  const vals = half.map(p => p.v);
+  s.baseline = median(vals);
+  const m = mad(vals, s.baseline);
+  s.noise = isFinite(m) && m > 0 ? m : 0.02;
+  s.dev = s.samples[n - 1].v - s.baseline;
+  const recent = s.samples.slice(-6);
+  if (recent.length >= 2) {
+    const dt = (recent[recent.length - 1].t - recent[0].t) / 3600000;
+    s.rate = dt > 0 ? (recent[recent.length - 1].v - recent[0].v) / dt : 0;
+  }
+
+  if (age > CFG.sensorDeadMs) {
+    s.health = 'DISCONNECTED';
+    s.healthWhy = 'Newest sample is ' + ageStr(age) + '. The node has stopped posting. Treat this site as uninstrumented until it returns \u2014 do not read the last value as current.';
+    return;
+  }
+  if (age > CFG.sensorStaleMs || (s.cadenceMs && age > s.cadenceMs * 5)) {
+    s.health = 'STALE';
+    s.healthWhy = 'Newest sample is ' + ageStr(age) + ', against a normal cadence of about ' + Math.round((s.cadenceMs || 0) / 1000) + ' s. The value on screen is old. This is the failure case that matters: a quiet chart here means the radio is down, not that the slope is still.';
+    return;
+  }
+  if (n < CFG.sensorBaselineN) {
+    s.health = 'BASELINING';
+    s.healthWhy = 'Collecting a baseline: ' + n + ' of ' + CFG.sensorBaselineN + ' samples. Until that is complete no anomaly can be declared, because there is nothing to compare against.';
+    return;
+  }
+  if (s.noise > SENSOR_RULES.noisyDeg) {
+    s.health = 'NOISY';
+    s.healthWhy = 'Measurement scatter is ' + num(s.noise, 3) + '\u00b0, above the ' + SENSOR_RULES.noisyDeg + '\u00b0 at which this node stops being able to resolve slow movement. Usually a loose mount, thermal drift, or traffic vibration. Fix the installation before trusting a trigger.';
+    return;
+  }
+  const lim = Math.max(SENSOR_RULES.anomalySigma * s.noise, SENSOR_RULES.minAbsDeg);
+  const sustained = s.samples.slice(-SENSOR_RULES.anomalySustain).every(p => Math.abs(p.v - s.baseline) > lim);
+  if (sustained && Math.abs(s.dev) > lim) {
+    s.health = 'ANOMALY';
+    s.healthWhy = 'Inclination is ' + num(Math.abs(s.dev), 3) + '\u00b0 from baseline, beyond the ' + num(lim, 3) + '\u00b0 limit (3 \u00d7 measured noise), and has stayed there for the last ' + SENSOR_RULES.anomalySustain + ' samples. Current rate ' + num(s.rate, 3) + '\u00b0/h.';
+    return;
+  }
+  s.health = 'HEALTHY';
+  s.healthWhy = 'Reporting on time, ' + n + ' samples, cadence about ' + Math.round((s.cadenceMs || 0) / 1000) + ' s, scatter ' + num(s.noise, 3) + '\u00b0, currently ' + num(Math.abs(s.dev), 3) + '\u00b0 from baseline against a ' + num(lim, 3) + '\u00b0 limit.';
+}
+
+async function pollSensor() {
+  if (isSim()) return;
+  const s = APP.live.sensor;
+  if (!s.channel) return;
+  const url = 'https://api.thingspeak.com/channels/' + encodeURIComponent(s.channel) + '/feeds.json?results=200';
+  const r = await getJSON(url);
+  const prevHealth = s.health;
+  if (!r.ok) {
+    s.status = 'error'; s.error = r.error;
+    s.health = 'FEED ERROR';
+    s.healthWhy = 'ThingSpeak did not answer (' + r.error + '). Common causes: the channel is private, the ID is wrong, or there is no route out of this network.';
+    feedChip('sens', 'bad', 'ground sensor: error');
+  } else {
+    const feeds = (r.data && Array.isArray(r.data.feeds)) ? r.data.feeds : [];
+    const key = 'field' + s.field;
+    const samples = [];
+    feeds.forEach(f => {
+      if (!f) return;
+      const v = parseFloat(f[key]);
+      const t = Date.parse(f.created_at);
+      if (isFinite(v) && isFinite(t)) samples.push({ t, v });
+    });
+    samples.sort((a, b) => a.t - b.t);
+    s.samples = samples;
+    s.fetchedAt = Date.now();
+    s.status = samples.length ? 'ok' : 'empty';
+    s.error = '';
+    analyseSensor(s);
+    if (!samples.length) {
+      s.health = 'NO SAMPLES';
+      s.healthWhy = 'Channel ' + s.channel + ' answered with ' + feeds.length + ' entries but none of them carry a number in field ' + s.field + '. Pick a different field, or check what the node is posting.';
+    }
+    const cls = s.health === 'HEALTHY' ? 'ok' : (s.health === 'ANOMALY' || s.health === 'DISCONNECTED' || s.health === 'FEED ERROR') ? 'bad' : 'warn';
+    feedChip('sens', cls, 'ground sensor: ' + s.health.toLowerCase());
+  }
+  if (prevHealth !== s.health) {
+    logEvent(s.health === 'ANOMALY' ? 'state' : 'sensor', 'Instrument health ' + (prevHealth || 'NONE') + ' \u2192 ' + s.health + '.', s.healthWhy);
+  }
+  renderSensor();
+  if (APP.tab === 'situation') renderSituation();
+}
+
+function connectSensor() {
+  const chRaw = $('#tsCh').value.trim();
+  const f = parseInt($('#tsF').value, 10);
+  if (!/^[0-9]{1,12}$/.test(chRaw)) { toast('Channel ID must be digits only.'); $('#tsCh').focus(); return; }
+  if (!(f >= 1 && f <= 8)) { toast('Field must be 1 to 8.'); return; }
+  const s = APP.live.sensor;
+  s.channel = chRaw; s.field = f; s.samples = []; s.status = 'connecting';
+  s.health = 'CONNECTING'; s.healthWhy = 'Requesting the last 200 entries from channel ' + chRaw + '.';
+  s.siteId = APP.siteId;
+  $('#btnDisconnect').hidden = false;
+  feedChip('sens', 'warn', 'ground sensor: connecting');
+  logEvent('sensor', 'Connected to ThingSpeak channel ' + chRaw + ', field ' + f + ', bound to site ' + site().name + '.', 'Public feed, no API key used.');
+  renderSensor();
+  clearInterval(APP.timers.sensor);
+  pollSensor();
+  APP.timers.sensor = setInterval(pollSensor, CFG.sensorPollMs);
+}
+function disconnectSensor() {
+  clearInterval(APP.timers.sensor); APP.timers.sensor = 0;
+  APP.live.sensor = freshCtx().sensor;
+  $('#btnDisconnect').hidden = true;
+  feedChip('sens', '', 'ground sensor: none');
+  logEvent('sensor', 'Instrument disconnected by the operator.', '');
+  renderSensor();
+  if (APP.tab === 'situation') renderSituation();
+}
+
+const HEALTH_STYLE = {
+  'NONE':        { g: '\u25CB', cls: 'st-NODATA' },
+  'CONNECTING':  { g: '\u2026', cls: 'st-MONITOR' },
+  'BASELINING':  { g: '\u25D4', cls: 'st-MONITOR' },
+  'HEALTHY':     { g: '\u2713', cls: 'st-NORMAL' },
+  'NOISY':       { g: '\u2248', cls: 'st-MONITOR' },
+  'STALE':       { g: '!', cls: 'st-WATCH' },
+  'DISCONNECTED':{ g: '\u2715', cls: 'st-WARNING' },
+  'ANOMALY':     { g: '\u25B2', cls: 'st-WARNING' },
+  'NO SAMPLES':  { g: '\u2205', cls: 'st-WATCH' },
+  'FEED ERROR':  { g: '\u2715', cls: 'st-WARNING' }
+};
+
+function renderSensor() {
+  const c = ctx(), s = c.sensor;
+  const h = s.health || 'NONE';
+  const st = HEALTH_STYLE[h] || HEALTH_STYLE.NONE;
+  const box = $('#sensHealth');
+  box.className = 'health ' + st.cls;
+  $('#sensGlyph').textContent = st.g;
+  $('#sensState').textContent = h;
+  $('#sensExplain').textContent = s.healthWhy || 'No channel entered. With no instrument, a site can reach WATCH from rainfall alone but can never reach WARNING \u2014 that is intentional.';
+  const pb = $('#sensPill'); clear(pb);
+  pb.appendChild(pill(s.status === 'ok' ? (isSim() ? 'sim' : 'sensor') : 'none'));
+  pb.appendChild(pill('exp'));
+
+  const m = $('#sensMetrics'); clear(m);
+  const add = (l, n, u) => {
+    const d = el('div', { class: 'metric' });
+    d.appendChild(el('div', { class: 'l', text: l }));
+    const v = el('div', { class: 'n', text: n });
+    if (u) v.appendChild(el('span', { class: 'u', text: ' ' + u }));
+    d.appendChild(v); m.appendChild(d);
+  };
+  add('Latest inclination', s.samples.length ? num(s.samples[s.samples.length - 1].v, 3) : '\u2014', 'deg');
+  add('From baseline', isFinite(s.dev) ? (s.dev >= 0 ? '+' : '') + num(s.dev, 3) : '\u2014', 'deg');
+  add('Rate, last samples', isFinite(s.rate) ? num(s.rate, 3) : '\u2014', 'deg/h');
+  add('Measured noise', isFinite(s.noise) ? num(s.noise, 3) : '\u2014', 'deg');
+  add('Samples held', String(s.samples.length), 'of ' + CFG.sensorBaselineN + ' needed');
+  add('Cadence', s.cadenceMs ? String(Math.round(s.cadenceMs / 1000)) : '\u2014', 'sec');
+  add('Newest sample', s.lastTs ? ageStr(Date.now() - s.lastTs) : '\u2014', '');
+  add('Bound to site', s.siteId ? (APP.sites.find(x => x.id === s.siteId) || {}).name || '\u2014' : '\u2014', '');
+
+  drawTiltChart($('#chTilt'), s, $('#chTiltCap'));
+  renderSensorMethod();
+}
+
+function renderSensorMethod() {
+  const box = $('#sensMethod');
+  if (box.dataset.done) return;
+  box.dataset.done = '1';
+  const P = t => box.appendChild(el('p', { class: 'lede', text: t }));
+  P('The previous version of this tool ran an STA/LTA trigger \u2014 the short-term over long-term amplitude ratio used by seismic networks \u2014 over an accelerometer stream arriving once every fifteen seconds, and described it as the same method real seismic early-warning systems use. The method is real. Running it on that stream is not.');
+  P('Seismic onset detection needs the waveform. Taiwan\u2019s P-Alert network, the standard example of doing this with cheap MEMS parts, samples three axes at 100 samples per second. Landslide and rockfall signals sit roughly between 1 and 20 Hz. A feed at one sample every fifteen seconds can only represent periods longer than thirty seconds, so the entire band of interest is folded into noise before the browser ever sees it. STA/LTA over those numbers produces a ratio, and the ratio means nothing.');
+  P('What a node at that cadence can measure honestly is inclination. Averaging a burst of samples on the board gives the direction of gravity, and therefore tilt, to a few hundredths of a degree. Slow tilt is also what the published Indian work actually uses: the Kalimpong prototype that cut false alarms from 70 to 38 combined a rainfall threshold with MEMS tilt sensors, not with seismometers.');
+  P('So this screen reports inclination against a baseline, with the noise measured from the channel\u2019s own history rather than assumed. The anomaly rule \u2014 three times measured noise, sustained over three samples \u2014 is a defensible engineering default and nothing more. It has never been tested against a recorded failure at this or any site, so the instrument is labelled experimental and is only ever allowed to confirm a rainfall signal, never to raise an alarm on its own.');
+  const n = el('div', { class: 'note info' });
+  n.appendChild(el('b', { text: 'Not claimed: ' }));
+  n.appendChild(document.createTextNode('that one node on one slope is an early-warning system, that this detects the moment of failure, that it gives minutes of lead time, or that a 15-second cloud round trip through a public IoT service is a life-safety data path. A real deployment needs several nodes, local processing, a local siren, and power and radio that survive the storm.'));
+  box.appendChild(n);
+}
+
+const INO = `// HIMGAURAV inclination node - example sketch
+// ESP32 + MPU-6050 -> ThingSpeak. Adapt to your wiring and your mounting.
+//
+// WHY A BURST: posting one instantaneous accelerometer reading every 15 s is
+// meaningless. We sample fast for 2 s, reduce on-device, and post the reduced
+// values. field1 = inclination in degrees, field2 = RMS dynamic acceleration,
+// field3 = supply voltage.
+//
+// CREDENTIALS: the three strings below are placeholders. Do not commit real
+// ones. On a deployed node put them in NVS / Preferences or a config portal.
+//
+// LOCAL ALARM: the buzzer fires from an on-device baseline check, before the
+// HTTP call below ever runs. Most IoT disaster-monitoring writeups list
+// dependency on a live cloud round trip as a documented failure mode — the
+// storm most likely to cause a slope movement is also the storm most likely
+// to have already taken the network down. This node never waits to find out.
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Wire.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+
+const char* WIFI_SSID = "REPLACE_ME";
+const char* WIFI_PASS = "REPLACE_ME";
+const char* TS_KEY    = "REPLACE_ME";           // ThingSpeak WRITE key
+const char* TS_URL    = "https://api.thingspeak.com/update";   // https, not http
+
+const int   BURST_N   = 200;    // 200 samples
+const int   BURST_HZ  = 100;    // at 100 Hz -> 2 s of signal
+const unsigned long PERIOD_MS = 60000UL;
+
+const int   BUZZER_PIN     = 27;
+const int   BASELINE_N     = 30;   // cycles used to freeze a baseline, ~30 min at PERIOD_MS
+const float MIN_LIMIT_DEG  = 0.05; // floor so near-zero noise can't make the alarm hair-triggered
+const int   SUSTAIN_CYCLES = 3;    // consecutive over-limit cycles required, matches the dashboard's rule
+
+Adafruit_MPU6050 mpu;
+float baselineBuf[BASELINE_N];
+int   baselineCount = 0;
+float baseline = NAN, noiseLimit = NAN;
+int   overCount = 0;
+
+static int cmpf(const void* a, const void* b) {
+  float d = *(const float*)a - *(const float*)b;
+  return (d > 0) - (d < 0);
+}
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
+  if (!mpu.begin()) { Serial.println("MPU-6050 not found"); }
+  mpu.setAccelerometerRange(MPU6050_RANGE_2_G);   // 2 g: best resolution for tilt
+  mpu.setFilterBandwidth(MPU6050_BAND_44_HZ);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+}
+
+void loop() {
+  static float tilt[BURST_N];
+  double sumSq = 0.0;
+
+  for (int i = 0; i < BURST_N; i++) {
+    sensors_event_t a, g, t;
+    mpu.getEvent(&a, &g, &t);
+    float ax = a.acceleration.x, ay = a.acceleration.y, az = a.acceleration.z;
+    float mag = sqrtf(ax*ax + ay*ay + az*az);
+    // inclination = angle between the sensed gravity vector and the axis that
+    // was vertical at installation. Here: angle of z from vertical.
+    float c = (mag > 0.1f) ? (az / mag) : 1.0f;
+    if (c > 1.0f) c = 1.0f; if (c < -1.0f) c = -1.0f;
+    tilt[i] = acosf(c) * 57.29578f;              // degrees
+    float dyn = mag - 9.80665f;                  // dynamic part, gravity removed
+    sumSq += (double)dyn * (double)dyn;
+    delay(1000 / BURST_HZ);
+  }
+
+  qsort(tilt, BURST_N, sizeof(float), cmpf);
+  float tiltMedian = tilt[BURST_N / 2];          // median rejects single spikes
+  float rms = sqrt(sumSq / BURST_N);
+  float vbat = analogRead(35) * 2.0f * 3.3f / 4095.0f;
+
+  // ---- local alarm: decided on-device, never waits on the network ----
+  if (baselineCount < BASELINE_N) {
+    baselineBuf[baselineCount++] = tiltMedian;
+    digitalWrite(BUZZER_PIN, LOW);              // still baselining: no alarm is possible yet
+  } else {
+    if (isnan(baseline)) {                      // freeze the baseline exactly once
+      float sum = 0, sumSq = 0;
+      for (int i = 0; i < BASELINE_N; i++) sum += baselineBuf[i];
+      baseline = sum / BASELINE_N;
+      for (int i = 0; i < BASELINE_N; i++) sumSq += (baselineBuf[i] - baseline) * (baselineBuf[i] - baseline);
+      float sd = sqrt(sumSq / BASELINE_N);
+      noiseLimit = max(3.0f * sd, MIN_LIMIT_DEG);
+    }
+    float dev = fabs(tiltMedian - baseline);
+    overCount = (dev > noiseLimit) ? (overCount + 1) : 0;
+    digitalWrite(BUZZER_PIN, (overCount >= SUSTAIN_CYCLES) ? HIGH : LOW);
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    String url = String(TS_URL) + "?api_key=" + TS_KEY
+               + "&field1=" + String(tiltMedian, 4)
+               + "&field2=" + String(rms, 4)
+               + "&field3=" + String(vbat, 2);
+    http.begin(url);
+    int code = http.GET();
+    Serial.printf("ThingSpeak -> %d  tilt=%.4f deg  rms=%.4f m/s2\\n", code, tiltMedian, rms);
+    http.end();
+  } else {
+    WiFi.begin(WIFI_SSID, WIFI_PASS);            // buffer locally in a real node
+  }
+  delay(PERIOD_MS);
+}
+`;
+/* ------------------------------ 9. Method screen -------------------------- */
+
+function renderMethod() {
+  const box = $('#methodBody');
+  if (box.dataset.done) return;
+  box.dataset.done = '1';
+  const band = (title, meta) => {
+    const b = el('div', { class: 'band' });
+    const h = el('div', { class: 'band-h' });
+    h.appendChild(el('h2', { text: title }));
+    if (meta) { const m = el('span', { class: 'meta' }); (Array.isArray(meta) ? meta : [meta]).forEach(x => m.appendChild(pill(x))); h.appendChild(m); }
+    b.appendChild(h); box.appendChild(b); return b;
+  };
+  const P = (b, t) => b.appendChild(el('p', { class: 'lede', text: t }));
+  const cite = (b, ns) => {
+    const p = el('p', { class: 'lede', style: 'font-size:11.5px' });
+    p.appendChild(document.createTextNode('Sources: '));
+    ns.forEach((n, i) => {
+      if (i) p.appendChild(document.createTextNode(', '));
+      const x = el('button', { class: 'linkish', type: 'button', text: '[' + n + ']' });
+      x.addEventListener('click', () => jumpSrc(n));
+      p.appendChild(x);
+    });
+    b.appendChild(p);
+  };
+
+  let b = band('The gap this fills');
+  P(b, 'India already has the layers above and below this one. The Geological Survey of India runs the National Landslide Forecasting Centre, publishes district-scale forecasts for Darjeeling, Kalimpong and the Nilgiris, has grown experimental coverage to 21 districts in eight states, and signed a framework agreement with HPSDMA in December 2023 to validate an experimental regional forecast for Himachal Pradesh. At the other end, fully instrumented slope-specific early-warning systems exist \u2014 GSI notes some are already installed in Mandi district.');
+  P(b, 'The gap is between them. A district forecast covers several thousand square kilometres. A site-specific system covers one hectare and costs enough that Himachal will never have thousands of them. In between sits every road cutting, school, bus stop and hamlet that a district officer is actually responsible for, and for those there is no layer that answers three questions at once: has the rainfall at this particular coordinate crossed a threshold that has historically mattered here, is there an instrument on that slope and is it telling the truth, and how old is everything I am looking at.');
+  P(b, 'HIMGAURAV is that middle layer, and only that. It does not forecast. It does not replace GSI, IMD, NDMA or the state emergency operations centre, and it is not connected to any of them. It screens named locations against a published threshold, exposes the provenance and age of every input, and refuses to render a green state when it is merely uninformed.');
+  cite(b, [8, 9, 7]);
+
+  b = band('A second, harder pass on that claim');
+  P(b, 'Before adding anything else, the "middle layer" framing above was re-attacked rather than assumed. Two candidate improvements were seriously considered and rejected. First: fixing the threshold\\u2019s biggest known weakness \\u2014 that it does not transfer to a site with no historical landslide record. This turns out to be an active, unsolved research problem that groups in China, Italy and South Korea are still publishing on, and even a state-of-the-art localised threshold framework in one 2026 study still carries a false-alarm ratio of roughly 60\\u201365% against real events. A student prototype cannot out-engineer that literature in a hackathon timeline, so the honest response is to keep showing the raw ratio openly rather than pretend a fix exists.');
+  P(b, 'Second: adding AI-based classification on top of the sensor or rainfall signal. Already a crowded, active academic subfield with no differentiation available here \\u2014 rejected for the same reason the original synthetic-label model was removed.');
+  P(b, 'Two things did survive the attack, because they close a documented gap without overclaiming precision. India already runs a crowdsourced landslide-reporting app, and its own developers published the lesson that unverified public reports need a way to be shown without being trusted automatically \\u2014 that is now the Local reports feature below, deliberately kept out of the automated state. Separately, IoT disaster-monitoring writeups repeatedly name cloud dependency and the absence of a real-time local alert as a documented weakness \\u2014 that is now how the node firmware\\u2019s buzzer fires, from the device itself, before it ever tries to reach ThingSpeak.');
+  cite(b, [21, 22, 23]);
+
+  b = band('Local reports \\u2014 a fifth channel, deliberately not automated', ['report']);
+  P(b, 'A person at the site can log one of a fixed set of standard, publicly published warning signs \\u2014 a new crack, a tilted pole, a new spring, muddy water in a normally clear stream. It is shown on the Situation screen with its own age and note, exactly like every other evidence row.');
+  P(b, 'It is never used to move the WATCH/WARNING calculation. A crowdsourced landslide app already deployed in India documented test entries, duplicate entries and outright mistakes as a real problem in its first monsoon of use; letting an anonymous, unverifiable tap escalate an automated warning would reintroduce the same fabricated-precision problem this rebuild already removed once. A human reads it and decides \\u2014 the software\\u2019s job stops at showing it clearly, dated, and separately.');
+  cite(b, [21, 22]);
+
+  b = band('The failure mode this is built against');
+  P(b, 'In a monitoring interface the dangerous bug is not a wrong number. It is a blank that looks calm. A sensor that stopped posting draws a flat line; a feed that timed out leaves the last value on screen; a district with no reported incident looks like a district that is safe. Every one of those reads as reassurance.');
+  P(b, 'So this build has a NO DATA state that is visually as loud as WARNING, never green. A stale rainfall read is stamped with its age on the headline. A silent instrument is reported as DISCONNECTED with its last-seen time, not as a quiet slope. A cached reading says it came from cache. If the feed fails, nothing is substituted for it.');
+
+  b = band('How the state is decided', ['derived', 'exp']);
+  P(b, 'Four evidence channels are evaluated separately and never averaged into a score. Averaging is what turns a rainfall reading into a fake landslide probability.');
+  const t = el('table', { class: 'tbl' });
+  const th = el('thead'); const hr = el('tr');
+  ['State', 'Condition', 'What it means to an operator'].forEach(x => hr.appendChild(el('th', { text: x })));
+  th.appendChild(hr); t.appendChild(th);
+  const tb = el('tbody');
+  [
+    ['NO DATA', 'No usable rainfall series, or the last successful read is more than 3 hours old, or the series has gaps at more than half the durations.', 'You are blind here. Find out why before assuming anything.'],
+    ['NORMAL', 'Mean intensity is below the threshold curve at every duration from 1 to 10 days.', 'Rainfall alone has not reached the band in which landslides have occurred here.'],
+    ['MONITOR', 'The curve is exceeded at some duration, by less than 2\u00d7, and 30-day antecedent rain is below 110 mm.', 'Inside the historical band but not strongly. Watch the trend.'],
+    ['WATCH', 'The curve is exceeded by 2\u00d7 or more at some duration, or it is exceeded at all while 30-day antecedent rain is at or above 110 mm.', 'Physically inspect the slope, the drainage and the cutting. Most of these will be nothing.'],
+    ['WARNING', 'WATCH conditions, and a connected instrument on that same slope is outside its own measured noise band at the same time.', 'Two independent measurements agree. Escalate.']
+  ].forEach(r => {
+    const tr = el('tr');
+    tr.appendChild(el('td', {}, [el('b', { text: r[0] })]));
+    tr.appendChild(el('td', { text: r[1] }));
+    tr.appendChild(el('td', { text: r[2] }));
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  b.appendChild(el('div', { class: 'scrollx' }, [t]));
+  P(b, 'Requiring two independent agreeing signals before the top state is not a design flourish. It is the one finding from Indian field work that transfers directly: at Kalimpong, adding MEMS tilt readings to a rainfall-threshold model cut false alarms from 70 to 38 over the study period. A rainfall-only alarm that cries wolf is worse than no alarm, because people stop leaving.');
+  P(b, 'The consequence is deliberate and visible: with no instrument connected, no site in this tool can ever reach WARNING. The interface says so on the evidence row rather than hiding it.');
+  cite(b, [1, 14]);
+
+  b = band('What was removed from the previous build');
+  const ul = el('ul', { style: 'font-size:13px;color:var(--ink-2);line-height:1.6;padding-left:18px;margin:6px 0' });
+  [
+    'A logistic-regression model advertised as "91.2% test accuracy, AUC 0.868". Its labels were generated synthetically from rules the model was then scored on recovering, so the figure measured self-consistency, not predictive skill. Presented next to live rainfall it read as landslide prediction accuracy. Removed entirely; nothing on this build claims to be machine learning.',
+    'A statewide risk dial driven by the single highest district rainfall. Rainfall intensity is a weather description. IMD\u2019s light / moderate / heavy / very heavy bands classify rain, not slope stability, and using them as risk tiers implies a relationship that does not exist.',
+    'An STA/LTA seismic trigger computed over a 15-second data stream, described as the method real seismic networks use. Explained on the Ground sensor screen.',
+    '"SACHET / Cell Broadcast \u2014 live nationwide rail, operational since 2 May 2026." The 2 May 2026 event was a nationwide test, conducted in Delhi NCR and state capitals, ahead of full operational rollout. Corrected and moved to the proposed section.',
+    '"296 dead this monsoon" shown as a headline statistic. 177 of those 296 were road-accident deaths. Kept, disaggregated and dated, on the Situation screen.',
+    'Static per-district blocked-road counts. The state figure moved between 150 and 67 within eleven days; a number like that in an interface without a date is wrong within a week.',
+    'A claim that adding a local sensor "raised a separate model\u2019s accuracy from 84% to 92%". No source reviewed supported that pairing, so it is gone.',
+    'District centroid coordinates used to represent whole districts. A rain figure at Shimla town says nothing about a slope in Rohru, and calling it "Shimla district, live" implied it did.'
+  ].forEach(x => ul.appendChild(el('li', { text: x })));
+  b.appendChild(ul);
+
+  b = band('What is proposed and does not exist here', 'prop');
+  P(b, 'Nothing in this list is wired up, and nothing in the interface will ever appear connected to it.');
+  const ul2 = el('ul', { style: 'font-size:13px;color:var(--ink-2);line-height:1.6;padding-left:18px;margin:6px 0' });
+  [
+    'Dissemination over India\u2019s CAP-based cell-broadcast channel. The correct destination for a confirmed warning is the national rail, not a bespoke app. The system was tested nationwide on 2 May 2026 and integration would be a government decision, not a technical one.',
+    'Sentinel-1 InSAR screening to choose which slopes deserve an instrument. Real and well established for slow deformation, and genuinely poor at the final rapid failure \u2014 fast displacement between passes destroys coherence. No InSAR product is computed or displayed here; ESA Copernicus Browser and Bhukosh are where the real data lives.',
+    'A mesh of several nodes per slope with on-site processing and a local siren, so that a warning does not depend on a mobile signal in a storm.',
+    'Handoff of a confirmed incident to the district emergency operations centre with the evidence attached.'
+  ].forEach(x => ul2.appendChild(el('li', { text: x })));
+  b.appendChild(ul2);
+  cite(b, [18, 10]);
+
+  b = band('AcuSearch, honestly', ['prop', 'exp']);
+  P(b, 'The rescue half of this project was audited on the same terms and shrunk. No detection of any kind is ever generated by this interface, in live or demonstration mode.');
+  P(b, 'What the evidence actually says: in a controlled rubble trial, WiFi Fine Time Measurement and ultra-wideband ranging to a buried phone both degraded sharply, and no UWB packet was captured at all from a reference point beyond 9 m, while WiFi packets still arrived. That inverts the funnel the earlier version drew, which placed UWB at the widest tier. UWB ranging to a phone and UWB impulse radar for breathing detection are also two different technologies; the earlier text ran them together, and the 30 to 100 m figure it quoted came from a vendor page, not a trial.');
+  P(b, 'What survives: a phone-first triage layer is worth building because phones are the only sensor already on the victim, and WiFi probe capture is the most robust of the phone methods under debris. Everything past that needs a functioning phone, a conscious person, or specialised equipment and a trained operator. Reusing slope-monitoring nodes as post-event listening posts remains an untested idea. It is written here as an idea.');
+  cite(b, [17]);
+
+  b = band('Honest limits of this prototype');
+  const ul3 = el('ul', { style: 'font-size:13px;color:var(--ink-2);line-height:1.6;padding-left:18px;margin:6px 0' });
+  [
+    'The rainfall is modelled, not measured. Open-Meteo returns numerical-model values on a grid of a few kilometres, for past days as well as future ones. In terrain where a ridge can separate a cloudburst from a dry valley, that is a real and large error source. IMD gauge data is the right input and is not programmatically available to this build.',
+    'The threshold was fitted for Shimla. Applying it at Kotrupi, Kullu or Dharamshala is an extrapolation and is labelled as one everywhere it appears. Published thresholds for Himachal disagree with each other substantially, which is itself worth knowing.',
+    'A threshold exceedance is a necessary condition, not a prediction. Most rainfall above the curve produces no landslide. The curve\u2019s real value is the other direction: rainfall below it at every duration has historically not been enough on its own.',
+    'One instrument on one slope is a demonstration. The anomaly rule has never been tested against a recorded failure.',
+    'ThingSpeak over the public internet is not a life-safety data path. It is what a student team can deploy and read from a browser.',
+    'Nothing here is verified against GSI Bhukosh, the NLFC bulletin, IMD warnings or any state system. No susceptibility polygon, landslide inventory or road-network layer is loaded.',
+    'Browser notifications are not used at all. A tab that must stay open is not an alerting system, and a notification that looks like a government alert but is not one is worse than none.'
+  ].forEach(x => ul3.appendChild(el('li', { text: x })));
+  b.appendChild(ul3);
+
+  b = band('Reading the labels');
+  const dl = el('dl', { class: 'kv' });
+  [
+    ['live', 'Fetched from a named external source during this session. Shows its age.'],
+    ['derived', 'Computed on this page from live or reference inputs. The formula is printed.'],
+    ['ref', 'A dated fact from a cited source. Never described as live and never updates.'],
+    ['sensor', 'Received from a connected field instrument.'],
+    ['sim', 'Produced only by the scripted demonstration. Cannot appear in live mode.'],
+    ['exp', 'A real method that has not been validated for warning at this deployment.'],
+    ['prop', 'Architecture that does not exist in this prototype.'],
+    ['none', 'Nothing is connected. Not a measurement of safety.'],
+    ['report', 'Typed in by a person at the site. Shown with its age, never used to move the automated state.']
+  ].forEach(r => {
+    const dt = el('dt'); dt.appendChild(pill(r[0]));
+    dl.appendChild(dt);
+    dl.appendChild(el('dd', { class: 'wrap', text: r[1] }));
+  });
+  b.appendChild(dl);
+
+  b = band('Rescue \u2014 AcuSearch, in one paragraph', ['exp', 'prop']);
+  P(b, 'Every proven victim-location method \u2014 UWB radar, seismic listening devices, RECCO, a 2026 phone-microphone method \u2014 is validated in rubble, snow or open ground, not in the water-saturated clay and mud that actually buries someone in a monsoon-triggered landslide. Wet clay is known to cut radar penetration to roughly a third of dry sand\\u2019s, and a prior UWB/WiFi ranging trial found no packets past 9 m even in drier rubble. No public study answers whether a phone signal survives that medium at all. So the Rescue screen does not contain a detector \\u2014 it contains a field-log tool for the one cheap experiment that would actually answer the question, and a reference checklist. Full reasoning is on that screen.');
+  cite(b, [17, 19, 20]);
+}
+
+function renderSources() {
+  const ol = $('#srcList');
+  if (ol.dataset.done) return;
+  ol.dataset.done = '1';
+  SOURCES.forEach(s => {
+    const li = el('li');
+    const d = el('div');
+    d.appendChild(el('a', { href: s.l, target: '_blank', rel: 'noopener noreferrer', text: s.t }));
+    d.appendChild(el('div', { class: 'm', text: s.m }));
+    d.appendChild(el('div', { class: 'u', text: 'Used for: ' + s.u }));
+    li.appendChild(d);
+    ol.appendChild(li);
+  });
+}
+function jumpSrc(n) {
+  go('evidence');
+  requestAnimationFrame(() => {
+    const items = $$('#srcList li');
+    items.forEach(x => x.classList.remove('flash'));
+    const t = items[n - 1];
+    if (!t) return;
+    t.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    t.classList.add('flash');
+    setTimeout(() => t.classList.remove('flash'), 2200);
+  });
+}
+
+/* ------------------------------ 10. demo engine --------------------------- */
+/* Deterministic. Seeded once; every tick is a pure function of its index, so
+   Back, Next, Restart and a second run all produce identical output. */
+
+const DEMO_PHASES = [
+  { id: 'p1', name: '1 Normal', from: 0,  to: 5,  cap: 'Baseline. Light monsoon rain at Kotrupi, nothing near the threshold at any duration. The node is still collecting a baseline \u2014 and at tick 4 it goes quiet for a few minutes, so you can see what missing data looks like. It does not look like safety.' },
+  { id: 'p2', name: '2 Rain accumulating', from: 6, to: 13, cap: 'Rain sets in. Watch the 2-day and 3-day points on the intensity\u2013duration chart lift before the 1-day point does \u2014 accumulation matters more than any single downpour. The state moves to MONITOR when the first duration crosses the curve.' },
+  { id: 'p3', name: '3 Threshold crossed', from: 14, to: 20, cap: 'Intensity passes twice the threshold curve and 30-day antecedent wetness is high. WATCH. At this point a district officer would send someone to physically look at the cutting and the drains. Nothing has been detected on the slope itself yet.' },
+  { id: 'p4', name: '4 Ground anomaly', from: 21, to: 27, cap: 'The inclination node starts to drift. Watch what does not happen: the state stays at WATCH. The drift is still inside three times the channel\u2019s own measured noise, so no anomaly is declared. A monitoring system that fires here is a system people stop believing.' },
+  { id: 'p5', name: '5 Warning', from: 28, to: 34, cap: 'Rainfall and the instrument now agree independently. WARNING. This is the only route to this state in the whole tool \u2014 rainfall alone can never produce it, by design.' },
+  { id: 'p6', name: '6 Field action', from: 35, to: 42, cap: 'What an operator has in hand: which site, which coordinate, which duration crossed and by how much, how old every input is, what the instrument did and when. In a deployed system this is the package that would be handed to the district EOC and, on a government decision, to the national cell-broadcast channel.' },
+  { id: 'p7', name: '7 Standing down', from: 43, to: 54, cap: 'Rain stops and the scenario jumps forward about two days. Note two things. The state falls back through MONITOR rather than snapping to green, because multi-day accumulation is still elevated. And the instrument stays in ANOMALY: the ground moved about a third of a degree and did not move back. That is correct, not a stuck flag \u2014 the slope really is somewhere new, and an engineer has to re-baseline it deliberately rather than have software quietly redefine normal.' }
+];
+const DEMO_LAST = DEMO_PHASES[DEMO_PHASES.length - 1].to;
+
+const RAIN_KF = [
+  [0,  [1.0, 0.6, 2.1, 0.9, 0.8, 0.3]],
+  [6,  [0.6, 2.1, 0.9, 0.8, 3.5, 3.0]],
+  [13, [2.1, 0.9, 0.8, 3.5, 12.0, 9.0]],
+  [20, [0.9, 0.8, 3.5, 12.0, 24.0, 27.0]],
+  [28, [0.8, 3.5, 12.0, 24.0, 33.0, 52.0]],
+  [34, [0.8, 3.5, 12.0, 24.0, 33.0, 64.0]],
+  [42, [0.8, 3.5, 12.0, 24.0, 33.0, 70.0]],
+  [47, [3.5, 12.0, 8.0, 5.0, 3.0, 1.2]],
+  [54, [2.0, 1.0, 0.8, 0.5, 0.4, 0.2]]
+];
+function rainTail(t) {
+  let a = RAIN_KF[0], b = RAIN_KF[RAIN_KF.length - 1];
+  for (let i = 0; i < RAIN_KF.length - 1; i++) {
+    if (t >= RAIN_KF[i][0] && t <= RAIN_KF[i + 1][0]) { a = RAIN_KF[i]; b = RAIN_KF[i + 1]; break; }
+  }
+  const span = Math.max(1, b[0] - a[0]);
+  const f = clamp((t - a[0]) / span, 0, 1);
+  return a[1].map((v, i) => v + (b[1][i] - v) * f);
+}
+
+function buildDemo() {
+  const rnd = mulberry32(20260915);
+  /* 25 fixed background days before the six scripted ones */
+  APP.demo.bg = [];
+  for (let i = 0; i < 25; i++) APP.demo.bg.push(Math.round((rnd() * 4.4) * 10) / 10);
+  /* tilt value per tick, plus deterministic jitter */
+  APP.demo.tilt = [];
+  for (let t = 0; t <= DEMO_LAST; t++) {
+    let base;
+    if (t < 21) base = 0;
+    else if (t < 28) base = 0.045 * ((t - 20) / 7);          // visible drift, still inside the noise band
+    else if (t < 43) base = 0.095 + 0.245 * ((t - 28) / 15); // crosses the limit at the start of phase 5
+    else base = 0.34 - 0.01 * ((t - 42) / 12);               // ground that moved stays moved
+    APP.demo.tilt.push(base);
+  }
+  APP.demo.jit = [];
+  for (let i = 0; i < 400; i++) APP.demo.jit.push((rnd() - 0.5) * 0.045);
+  APP.demo.phases = DEMO_PHASES;
+}
+
+function demoPhase(t) {
+  for (const p of DEMO_PHASES) if (t >= p.from && t <= p.to) return p;
+  return DEMO_PHASES[DEMO_PHASES.length - 1];
+}
+
+function demoSeries(t, siteId) {
+  const tail = rainTail(t);
+  const scale = siteId === 'kotrupi' ? 1 : siteId === 'mandi' ? 0.78 : siteId === 'kullu' ? 0.62 : siteId === 'dharamshala' ? 0.45 : siteId === 'shimla' ? 0.3 : 0.22;
+  const dates = [], mm = [];
+  const today = new Date();
+  for (let k = -31; k <= 5; k++) {
+    const d = new Date(today.getTime() + k * 864e5);
+    dates.push(istISODate(d));
+  }
+  for (let i = 0; i < 25; i++) mm.push(Math.round(APP.demo.bg[i] * scale * 10) / 10);
+  mm.push(Math.round(APP.demo.bg[24] * scale * 10) / 10);
+  tail.forEach(v => mm.push(Math.round(v * scale * 10) / 10));
+  const fc = [0.6, 0.3, 0.2, 0.1, 0.1];
+  fc.forEach(v => mm.push(Math.round(v * scale * (t < 34 ? 6 : 1) * 10) / 10));
+  while (mm.length < dates.length) mm.push(0);
+  mm.length = dates.length;
+  return { dates, mm, todayIdx: 31 };
+}
+
+function demoSensor(t) {
+  const now = Date.now();
+  const stale = (t >= 3 && t <= 4);
+  const perTick = 3, gap = 30000;
+  const total = (t + 1) * perTick;
+  const endAt = now - (stale ? 14 * 60000 : 4000);
+  const samples = [];
+  for (let i = 0; i < total; i++) {
+    const tickOf = Math.min(t, Math.floor(i / perTick));
+    const v = APP.demo.tilt[tickOf] + APP.demo.jit[i % APP.demo.jit.length];
+    samples.push({ t: endAt - (total - 1 - i) * gap, v: Math.round(v * 10000) / 10000 });
+  }
+  const s = Object.assign(freshCtx().sensor, {
+    channel: 'SIM-0000', field: 1, status: 'ok', samples, siteId: 'kotrupi', fetchedAt: now
+  });
+  analyseSensor(s);
+  if (stale) { s.health = 'STALE'; s.healthWhy = 'Newest sample is ' + ageStr(now - s.lastTs) + ', against a normal cadence of about 30 s. The node has gone quiet. The chart looks calm because there is no new data \u2014 not because the slope is still. This is the moment the interface has to be loud.'; }
+  return s;
+}
+
+function demoQuakes() {
+  const base = Date.now();
+  return {
+    status: 'ok', fetchedAt: base, error: '',
+    features: [
+      { properties: { mag: 3.1, place: 'Scenario event, Chamba region', time: base - 6 * 864e5 } },
+      { properties: { mag: 2.7, place: 'Scenario event, Kinnaur region', time: base - 19 * 864e5 } },
+      { properties: { mag: 2.6, place: 'Scenario event, Mandi region', time: base - 41 * 864e5 } }
+    ]
+  };
+}
+
+function demoApply(t) {
+  const c = APP.sim;
+  APP.sites.forEach(s => {
+    c.wx[s.id] = { ok: true, series: demoSeries(t, s.id), current: null, fetchedAt: Date.now(), obsTime: Date.now(), error: '', cached: false };
+  });
+  c.sensor = demoSensor(t);
+  c.quakes = demoQuakes();
+  const ph = demoPhase(t);
+  if (c.__phase !== ph.id) {
+    c.__phase = ph.id;
+    logEvent('phase', 'Scenario phase: ' + ph.name + '.', ph.cap);
+  }
+  const prevH = c.__health;
+  if (prevH !== c.sensor.health) {
+    c.__health = c.sensor.health;
+    logEvent(c.sensor.health === 'ANOMALY' ? 'state' : 'sensor', 'Instrument health \u2192 ' + c.sensor.health + '.', c.sensor.healthWhy);
+  }
+  feedChip('rain', 'sim', 'rainfall: SIMULATED');
+  feedChip('seis', 'sim', 'seismic: SIMULATED');
+  feedChip('sens', 'sim', 'ground sensor: SIMULATED');
+  renderAll();
+  renderDemoConsole();
+}
+
+function renderDemoConsole() {
+  const box = $('#demoConsole');
+  box.hidden = !isSim();
+  if (!isSim()) return;
+  const t = APP.demo.i;
+  $('#demoBar').style.width = (100 * t / DEMO_LAST).toFixed(1) + '%';
+  const ph = demoPhase(t);
+  $('#demoCaption').textContent = ph.cap;
+  const steps = $('#demoSteps'); clear(steps);
+  DEMO_PHASES.forEach(p => {
+    steps.appendChild(el('span', { class: 'demostep' + (p.id === ph.id ? ' now' : (t > p.to ? ' done' : '')), text: p.name }));
+  });
+  $('#dPause').textContent = APP.demo.playing ? 'Pause' : 'Play';
+  $('#dSpeed').textContent = 'Speed ' + APP.demo.speed + '\u00d7';
+}
+
+function demoTick() {
+  if (!isSim() || !APP.demo.playing) return;
+  if (APP.demo.i >= DEMO_LAST) { APP.demo.playing = false; renderDemoConsole(); toast('Scenario complete. Restart, or return to live.'); return; }
+  APP.demo.i++;
+  demoApply(APP.demo.i);
+}
+function demoSchedule() {
+  clearInterval(APP.timers.demo);
+  APP.timers.demo = setInterval(demoTick, Math.round(950 / APP.demo.speed));
+}
+function demoSeek(i) {
+  APP.demo.i = clamp(i, 0, DEMO_LAST);
+  demoApply(APP.demo.i);
+}
+
+/* ------------------------------ 11. mode switching ------------------------ */
+
+function setMode(mode) {
+  if (mode === APP.mode) return;
+  APP.mode = mode;
+  APP.openDetail = null;
+  lastRenderedState = null;
+  document.body.classList.toggle('sim', mode === 'demo');
+  $('#btnLive').setAttribute('aria-pressed', mode === 'live' ? 'true' : 'false');
+  $('#btnDemo').setAttribute('aria-pressed', mode === 'demo' ? 'true' : 'false');
+
+  clearInterval(APP.timers.wx); clearInterval(APP.timers.sensor); clearInterval(APP.timers.demo);
+  APP.timers.wx = APP.timers.sensor = APP.timers.demo = 0;
+
+  if (mode === 'demo') {
+    APP.sim = freshCtx();
+    APP.sim.__phase = null; APP.sim.__health = null;
+    APP.demo.i = 0; APP.demo.playing = true; APP.demo.speed = 1;
+    if (!APP.demo.bg) buildDemo();
+    logEvent('phase', 'Simulation started. Live feeds are suspended and live data is preserved untouched.', 'Deterministic scripted scenario, seed 20260915.');
+    demoApply(0);
+    demoSchedule();
+    go('situation');
+    toast('Simulation running. Controls are on the Event log screen.');
+  } else {
+    APP.sim = null;                       /* every simulated value is discarded here */
+    $('#demoConsole').hidden = true;
+    feedChip('rain', '', 'rainfall: reconnecting');
+    feedChip('seis', '', 'seismic: reconnecting');
+    const s = APP.live.sensor;
+    feedChip('sens', s.channel ? 'warn' : '', s.channel ? 'ground sensor: reconnecting' : 'ground sensor: none');
+    logEvent('mode', 'Returned to live. Simulated state discarded; live feeds re-requested.', '');
+    renderAll();
+    fetchWeather(true);
+    fetchQuakes(false);
+    if (s.channel) { pollSensor(); APP.timers.sensor = setInterval(pollSensor, CFG.sensorPollMs); }
+    APP.timers.wx = setInterval(() => fetchWeather(false), CFG.wxRefreshMs);
+    toast('Back to live data.');
+  }
+}
+
+/* ------------------------------ 12. navigation ---------------------------- */
+
+function go(tab) {
+  APP.tab = tab;
+  $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + tab));
+  $$('nav.tabs button, nav.rail button').forEach(b => {
+    if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  if (tab === 'method') renderMethod();
+  if (tab === 'evidence') renderSources();
+  if (tab === 'log') { renderLog(); renderDemoConsole(); }
+  if (tab === 'sensor') renderSensor();
+  if (tab === 'rescue') { renderRescueResults(); renderRescueSignRef(); }
+  if (tab === 'situation' || tab === 'sites') renderSituation();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  const h = $('#v-' + tab).querySelector('h1');
+  if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+}
+
+function renderAll() {
+  renderSituation();
+  renderSensor();
+  if (APP.tab === 'log') renderLog();
+}
+
+/* ------------------------------ 13. wiring -------------------------------- */
+
+function rebuildSiteSelect() {
+  const sel = $('#siteSel');
+  clear(sel);
+  APP.sites.forEach(s => sel.appendChild(el('option', { value: s.id, text: s.name + ' \u2014 ' + s.area })));
+  sel.value = APP.siteId;
+}
+
+function addCustomSite() {
+  const name = $('#cName').value.trim().slice(0, 40);
+  const la = parseFloat($('#cLat').value), lo = parseFloat($('#cLon').value);
+  const msg = $('#addMsg');
+  if (!name) { msg.textContent = 'Give the site a name.'; return; }
+  if (!isFinite(la) || la < 30.2 || la > 33.3) { msg.textContent = 'Latitude must be a number between 30.2 and 33.3 \u2014 that is the span of Himachal Pradesh.'; return; }
+  if (!isFinite(lo) || lo < 75.4 || lo > 79.1) { msg.textContent = 'Longitude must be a number between 75.4 and 79.1.'; return; }
+  const id = 'c' + Date.now().toString(36);
+  APP.sites.push({
+    id, name, area: 'Operator-added \u00b7 ' + num(la, 4) + '\u00b0N ' + num(lo, 4) + '\u00b0E',
+    lat: la, lon: lo, kind: 'custom', inDomain: false,
+    basis: 'Added by the operator in this browser. No published susceptibility assessment, landslide inventory entry or geotechnical study is attached to this coordinate by this tool. The rainfall screen runs exactly as it does elsewhere; the threshold remains a Shimla extrapolation.',
+    cites: []
+  });
+  storeSet(CFG.sitesKey, APP.sites.filter(s => s.kind === 'custom'));
+  $('#cName').value = $('#cLat').value = $('#cLon').value = '';
+  msg.textContent = 'Added ' + name + '. Fetching rainfall for it now.';
+  rebuildSiteSelect();
+  logEvent('site', 'Operator added site ' + name + ' at ' + num(la, 4) + ', ' + num(lo, 4) + '.', 'Stored in this browser only.');
+  APP.siteId = id;
+  rebuildSiteSelect();
+  if (isSim()) { demoApply(APP.demo.i); } else fetchWeather(true);
+}
+
+function useLocation() {
+  if (!navigator.geolocation) { toast('This browser does not offer location.'); return; }
+  toast('Asking for your location\u2026');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const la = pos.coords.latitude, lo = pos.coords.longitude;
+    const R = 6371, rad = x => x * Math.PI / 180;
+    let best = null, bd = Infinity;
+    APP.sites.forEach(s => {
+      const dLa = rad(s.lat - la), dLo = rad(s.lon - lo);
+      const a = Math.sin(dLa / 2) ** 2 + Math.cos(rad(la)) * Math.cos(rad(s.lat)) * Math.sin(dLo / 2) ** 2;
+      const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (d < bd) { bd = d; best = s; }
+    });
+    if (!best) return;
+    APP.siteId = best.id; $('#siteSel').value = best.id; APP.openDetail = null; lastRenderedState = null;
+    renderAll();
+    toast('Nearest monitored site: ' + best.name + ', about ' + Math.round(bd) + ' km away.');
+    logEvent('site', 'Nearest site selected from device location: ' + best.name + ', about ' + Math.round(bd) + ' km.', 'Coordinate used in this tab only and not transmitted or stored.');
+  }, err => {
+    const why = err && err.code === 1 ? 'permission was refused' : err && err.code === 2 ? 'position is unavailable' : 'the request timed out';
+    toast('Could not get your location: ' + why + '. Pick a site from the list instead.');
+  }, { timeout: 9000, maximumAge: 300000, enableHighAccuracy: false });
+}
+
+function wire() {
+  $$('sup.c').forEach(x => {
+    x.setAttribute('role', 'button');
+    x.setAttribute('tabindex', '0');
+    x.setAttribute('aria-label', 'Open source ' + x.dataset.src);
+    const fire = () => jumpSrc(Number(x.dataset.src));
+    x.addEventListener('click', fire);
+    x.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+  });
+  $$('nav.tabs button, nav.rail button').forEach(b => b.addEventListener('click', () => go(b.dataset.tab)));
+  $('#btnLive').addEventListener('click', () => setMode('live'));
+  $('#btnDemo').addEventListener('click', () => setMode('demo'));
+  $('#simExit').addEventListener('click', () => setMode('live'));
+  $('#btnRefresh').addEventListener('click', () => {
+    if (isSim()) { toast('Simulation is running \u2014 live feeds are suspended.'); return; }
+    fetchWeather(true); fetchQuakes(true); if (APP.live.sensor.channel) pollSensor();
+  });
+  $('#siteSel').addEventListener('change', e => {
+    APP.siteId = e.target.value; APP.openDetail = null; lastRenderedState = null; renderAll();
+  });
+  $('#btnNearest').addEventListener('click', useLocation);
+  $('#btnAddSite').addEventListener('click', addCustomSite);
+  $('#btnConnect').addEventListener('click', connectSensor);
+  $('#btnDisconnect').addEventListener('click', disconnectSensor);
+  $('#tsCh').addEventListener('keydown', e => { if (e.key === 'Enter') connectSensor(); });
+
+  $('#btnCode').addEventListener('click', () => {
+    const box = $('#codeBox');
+    if (box.hidden) {
+      if (!box.firstChild) { const p = el('pre', { class: 'code' }); p.textContent = INO; box.appendChild(p); }
+      box.hidden = false; $('#btnCode').textContent = 'Hide code';
+    } else { box.hidden = true; $('#btnCode').textContent = 'Show code'; }
+  });
+  $('#btnIno').addEventListener('click', () => {
+    try {
+      const b = new Blob([INO], { type: 'text/plain' });
+      const a = el('a', { href: URL.createObjectURL(b), download: 'himgaurav_node.ino' });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      toast('Downloaded himgaurav_node.ino \u2014 credentials are placeholders.');
+    } catch (e) { toast('Download is blocked in this browser context.'); }
+  });
+
+  $('#btnCopyLog').addEventListener('click', () => {
+    const c = ctx();
+    const txt = c.log.map(e => istTime(new Date(e.t)) + ' IST  ' + (e.sim ? '[SIM] ' : '') + e.text + (e.src ? '  (' + e.src + ')' : '')).join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('Log copied.'), () => toast('Clipboard is blocked here.'));
+    else toast('Clipboard is not available in this browser.');
+  });
+  $('#btnClearLog').addEventListener('click', () => { ctx().log = []; renderLog(); });
+
+  $('#btnAddRep').addEventListener('click', addReport);
+  $('#repNote').addEventListener('keydown', e => { if (e.key === 'Enter') addReport(); });
+  $('#btnAddMeas').addEventListener('click', addMeasurement);
+  $('#btnCopyMeas').addEventListener('click', exportMeasCSV);
+  $('#btnClearMeas').addEventListener('click', () => {
+    if (!APP.measurements.length) return;
+    APP.measurements = [];
+    storeSet(CFG.measKey, APP.measurements);
+    renderRescueResults();
+    toast('Measurement log cleared.');
+  });
+
+  $('#dPause').addEventListener('click', () => { APP.demo.playing = !APP.demo.playing; renderDemoConsole(); });
+  $('#dNext').addEventListener('click', () => { const p = demoPhase(APP.demo.i); const n = DEMO_PHASES[DEMO_PHASES.indexOf(p) + 1]; demoSeek(n ? n.from : DEMO_LAST); });
+  $('#dPrev').addEventListener('click', () => { const p = demoPhase(APP.demo.i); const i = DEMO_PHASES.indexOf(p); demoSeek(APP.demo.i > p.from + 1 ? p.from : (i > 0 ? DEMO_PHASES[i - 1].from : 0)); });
+  $('#dRestart').addEventListener('click', () => { APP.demo.playing = true; demoSeek(0); demoSchedule(); });
+  $('#dSpeed').addEventListener('click', () => {
+    APP.demo.speed = APP.demo.speed === 1 ? 2 : APP.demo.speed === 2 ? 4 : 1;
+    demoSchedule(); renderDemoConsole();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    const order = ['situation', 'sites', 'sensor', 'log', 'rescue', 'method', 'evidence'];
+    if (e.key >= '1' && e.key <= '7') { go(order[Number(e.key) - 1]); }
+    if (e.key === 'd' || e.key === 'D') setMode(isSim() ? 'live' : 'demo');
+    if (isSim() && e.key === ' ') { e.preventDefault(); APP.demo.playing = !APP.demo.playing; renderDemoConsole(); }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !isSim()) {
+      const w = APP.live.wx[APP.siteId];
+      if (!w || !w.ok || Date.now() - w.fetchedAt > CFG.wxRefreshMs) fetchWeather(false);
+    }
+  });
+  window.addEventListener('online', () => { if (!isSim()) { toast('Back online \u2014 refetching.'); fetchWeather(false); fetchQuakes(false); } });
+  window.addEventListener('offline', () => { if (!isSim()) { feedChip('rain', 'bad', 'rainfall: offline'); logEvent('feed', 'Browser reports the device is offline. Cached values keep their original timestamps.', ''); } });
+}
+
+/* ------------------------------ 14. boot ---------------------------------- */
+
+function boot() {
+  const fields = $('#tsF');
+  for (let i = 1; i <= 8; i++) fields.appendChild(el('option', { value: String(i), text: 'field' + i }));
+  fields.value = '1';
+
+  const saved = storeGet(CFG.sitesKey);
+  if (Array.isArray(saved)) saved.forEach(s => { if (s && s.id && isFinite(s.lat) && isFinite(s.lon)) APP.sites.push(s); });
+  rebuildSiteSelect();
+
+  const savedReports = storeGet(CFG.reportsKey);
+  if (savedReports && typeof savedReports === 'object') APP.reports = savedReports;
+  const savedMeas = storeGet(CFG.measKey);
+  if (Array.isArray(savedMeas)) APP.measurements = savedMeas;
+
+  wire();
+  buildDemo();
+
+  const n = loadCache();
+  if (n) logEvent('feed', 'Loaded ' + n + ' cached rainfall series from this browser, all clearly marked as cached until a live read replaces them.', 'Cache is discarded automatically once the date changes.');
+  logEvent('mode', 'Session started in live mode.', navigator.onLine === false ? 'Device reports no network.' : '');
+
+  renderAll();
+  renderDemoConsole();
+  fetchWeather(false);
+  fetchQuakes(false);
+  APP.timers.wx = setInterval(() => fetchWeather(false), CFG.wxRefreshMs);
+  APP.timers.clock = setInterval(() => {
+    if (APP.tab === 'situation') { renderSituation(); }
+    else if (APP.tab === 'sensor') { renderSensor(); }
+  }, 30000);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+</script>
+</body>
+</html>

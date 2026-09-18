@@ -1,0 +1,8 @@
+HIMGAURAV build 7.0-acusearch-lab
+Satellite + IoT + Working Multilingual Alerts + AcuSearch saturated-soil research lab
+
+Direct AcuSearch workspace: http://127.0.0.1:8807/#rescue
+Direct Alert Centre: http://127.0.0.1:8807/#alerts
+Default local port: 8807
+
+AcuSearch is an experimental measurement workspace, not a survivor detector.

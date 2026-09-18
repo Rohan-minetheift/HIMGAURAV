@@ -1,0 +1,1 @@
+window.HIMGAURAV_CONFIG = window.HIMGAURAV_CONFIG || {};
