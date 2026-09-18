@@ -1,299 +1,412 @@
-# HIMGAURAV v7.0 — Satellite + IoT + Working Alerts + AcuSearch Lab
+<!-- HIMGAURAV repository overview -->
+<p align="center">
+  <img src="assets/himgaurav-mark.svg" width="88" alt="HIMGAURAV logo">
+</p>
 
-**Build check:** the header must show **`v7.0 · ACUSEARCH LAB`** and the left rail must show:
+<h1 align="center">HIMGAURAV</h1>
 
-`Command → Satellite → Nodes → Events → Alerts → AcuSearch → System`
+<p align="center">
+  <strong>Satellite–IoT Integrated Landslide Intelligence, Early Warning & Rescue Research Platform</strong><br>
+  Built for Himalayan terrain · Himachal Pradesh, India
+</p>
 
-Direct AcuSearch Lab: `http://127.0.0.1:8807/#rescue`  
-Direct Alert Centre: `http://127.0.0.1:8807/#alerts`
+<p align="center">
+  <img alt="Version" src="https://img.shields.io/badge/version-7.0-0D4853">
+  <img alt="Status" src="https://img.shields.io/badge/status-research%20prototype-D85A2A">
+  <img alt="Region" src="https://img.shields.io/badge/region-Himachal%20Pradesh-2E7D32">
+  <img alt="Data truth" src="https://img.shields.io/badge/data-no%20fake%20live%20values-334155">
+</p>
 
-HIMGAURAV is a research prototype for **Satellite–IoT integrated landslide screening, field sensing and last-mile alert preparation for Himachal Pradesh**. v7 keeps the existing data-truth rules: no fake live readings, no synthetic satellite images, no fabricated public-warning connection, and no opaque “AI landslide probability”.
+---
 
-## Start it correctly
+## What is HIMGAURAV?
+
+**HIMGAURAV** is a research prototype for landslide monitoring and decision support that combines **Earth observation, rainfall intelligence, field IoT sensing, geospatial analysis, multilingual alert preparation, and post-event rescue research** in one transparent platform.
+
+The idea is simple:
+
+> **Observe broadly with satellites, understand the trigger with weather, verify locally with sensors, and present the evidence together before a decision is made.**
+
+HIMGAURAV is intentionally not an opaque “AI risk percentage” dashboard. Each visible value carries its provenance, and missing data is allowed to remain missing.
+
+---
+
+## Why this project exists
+
+Himalayan landslide monitoring is difficult because no single data source is enough.
+
+- **Satellite imagery** covers large areas but is not a continuous slope sensor.
+- **Weather models** provide valuable rainfall context but are not local rain gauges.
+- **Field sensors** provide local ground truth but only where hardware is installed.
+- **Warnings** need evidence, clear language, geo-targeting, and authorised dissemination.
+- **Post-event rescue** has a different problem entirely: finding people in saturated debris is still poorly characterised for low-cost phone-based methods.
+
+HIMGAURAV brings those layers into one evidence-first workflow.
+
+---
+
+## System architecture
+
+~~~mermaid
+flowchart LR
+    EO["Satellite / Earth Observation"] --> FUSION["HIMGAURAV Evidence Layer"]
+    WX["Rainfall history + forecast"] --> FUSION
+    IOT["ESP32 / LoRa field nodes"] --> FUSION
+    REPORTS["Local reports"] --> FUSION
+
+    FUSION --> STATE["NORMAL · MONITOR · WATCH · WARNING"]
+    STATE --> ALERT["Multilingual Alert Centre"]
+    ALERT --> LOCAL["Browser / Voice / Local Gateway"]
+    ALERT --> CAP["CAP 1.2 Draft / Exercise"]
+    CAP --> AUTH["Authorised external warning infrastructure"]
+
+    INCIDENT["Post-event incident"] --> ACU["AcuSearch research lab"]
+    ACU --> TEST["RF / acoustic soil-pit experiments"]
+~~~
+
+Detailed architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+---
+
+## Main workspaces
+
+| Workspace | What it does | Data status |
+|---|---|---|
+| **Command** | Geospatial situation view, monitored sites, state, rainfall, map overlays and evidence inspection | Live / model / derived / reference |
+| **Satellite** | Dated Earth-observation imagery around monitored locations | Real dated EO imagery |
+| **Nodes** | ESP32 / ThingSpeak telemetry, inclination, soil moisture, rainfall input, battery and RSSI | Sensor when connected |
+| **Events** | Chronological record of state changes, source updates and operator actions | Session / local log |
+| **Alerts** | 23-language alert composition, readiness gate, CAP export, local notification and drill outputs | Local + configurable connectors |
+| **AcuSearch** | Measurement-first rescue research for phone/RF/acoustic propagation through landslide soil | Experimental |
+| **System** | Methods, sources, limitations, provenance and integration status | Reference |
+
+---
+
+## 1. Geospatial Command Centre
+
+The Command screen is the operational overview.
+
+It brings together:
+
+- monitored slope location,
+- current screening state,
+- rainfall accumulation,
+- rainfall threshold evidence,
+- field-node availability,
+- satellite / terrain context,
+- radar and seismic overlays when actually available,
+- forecast trend,
+- local reports,
+- evidence age and provenance.
+
+Generic town or district coordinates remain **REGIONAL context points** and are not allowed to become slope WATCH/WARNING states.
+
+---
+
+## 2. Satellite Intelligence
+
+The Satellite workspace is an independent Earth-observation layer rather than a decorative map.
+
+Current prototype support includes real dated products such as:
+
+- **HLS Sentinel-2 surface reflectance**,
+- **Suomi NPP VIIRS true colour**,
+- **VIIRS false colour**,
+- **MODIS Terra true colour**.
+
+The interface exposes the image date, product identity, monitored-site position and acquisition limitations.
+
+**Sentinel-1 / InSAR is not fabricated.** It remains a future/authenticated processing path until an actual deformation workflow exists.
+
+---
+
+## 3. Rainfall intelligence
+
+Rainfall is treated as a trigger-screening input, not as proof that a landslide will occur.
+
+The prototype retains the published Shimla intensity–duration relation used by the audited build:
+
+~~~text
+I = 7.20 × D^-0.26
+~~~
+
+Durations evaluated:
+
+**1, 2, 3, 5, 7 and 10 days**
+
+The application also keeps a 30-day antecedent rainfall reference.
+
+### Screening states
+
+| State | Meaning |
+|---|---|
+| **NORMAL** | Tested rainfall durations remain below the screening threshold |
+| **MONITOR** | Rainfall has entered the historical threshold band |
+| **WATCH** | Stronger rainfall evidence / antecedent condition deserves close inspection |
+| **WARNING** | WATCH plus sustained same-slope inclination anomaly from a connected field node |
+| **NO DATA** | Rainfall is unavailable, too stale or too incomplete |
+| **REGIONAL** | Geographic context only; not treated as an instrumented slope |
+
+A threshold exceedance is a **screening condition, not a deterministic landslide prediction**.
+
+---
+
+## 4. Field IoT nodes
+
+The field-node concept is designed around:
+
+- **ESP32**
+- **MPU6500 / inclination sensing**
+- **capacitive soil moisture**
+- **rainfall input**
+- **LoRa SX1278 communication**
+- **ThingSpeak / cloud telemetry**
+- **battery and RSSI / link health**
+
+A typical path is:
+
+~~~text
+Slope sensors → ESP32 → LoRa → Gateway ESP32 → Internet / ThingSpeak → HIMGAURAV
+~~~
+
+Only the currently defined sustained inclination anomaly is permitted to corroborate WATCH into WARNING. Soil moisture, rainfall detector, RSSI and battery remain visible evidence/health channels rather than being silently converted into an unvalidated risk score.
+
+---
+
+## 5. Multilingual Alert Centre
+
+The Alert Centre is designed around a simple rule:
+
+> A visible READY feature must actually execute on the operator device.
+
+### Working local features
+
+- English + **all 22 Scheduled Languages of India** using local structured alert templates
+- right-to-left handling for Urdu, Kashmiri and Sindhi
+- one-click **23-language alert pack**
+- operator editing and review state
+- citizen-facing live preview
+- browser notification
+- browser/OS speech only when a matching voice exists
+- local drill siren
+- structured JSON export
+- **CAP 1.2 XML export**
+- operator-selected 1 / 3 / 5 / 10 km communication circle
+- alert audit trail
+
+### Alert Readiness Gate
+
+Before stronger warning language is prepared, the interface visibly checks:
+
+1. LIVE vs DEMO provenance
+2. operational slope vs regional context
+3. rainfall freshness
+4. WATCH / WARNING evidence state
+5. same-slope sensor corroboration
+6. language/message availability
+
+The communication radius is **not** presented as a landslide run-out model.
+
+Official NDMA SACHET / telecom Cell Broadcast remains external authorised infrastructure; this repository does not contain or claim government publishing credentials.
+
+---
+
+## 6. AcuSearch
+
+**AcuSearch is the post-landslide research component of HIMGAURAV.**
+
+It does **not** claim that a browser can already locate a buried survivor.
+
+The research question comes first:
+
+> Can Wi-Fi, Bluetooth or audible phone signals remain detectable through realistic dry, damp and water-saturated landslide soil at useful depths and distances?
+
+The working AcuSearch Lab includes:
+
+- soil-pit experiment logger,
+- Wi-Fi / BLE / acoustic / wired-control modalities,
+- burial depth and soil-condition protocol,
+- detected / not-detected outcomes,
+- optional RSSI or browser dBFS measurement,
+- Web Audio 1–3 kHz tone generator,
+- browser microphone meter,
+- detection-vs-distance visualisation,
+- protocol coverage matrix,
+- CSV export and import.
+
+Results are reported as **observations from tested conditions**, never as an invented victim-detection range.
+
+Research dossier: [docs/ACUSEARCH-RESEARCH.md](docs/ACUSEARCH-RESEARCH.md)
+
+---
+
+## Data-truth contract
+
+HIMGAURAV deliberately separates different kinds of information.
+
+| Label | Meaning |
+|---|---|
+| **LIVE** | Retrieved from a named source during the current session |
+| **SENSOR** | Received from a connected field instrument |
+| **MODEL / FORECAST** | Numerical weather-model information |
+| **DERIVED** | Calculated by HIMGAURAV from stated inputs |
+| **RECENT** | Real data that is not instantaneous |
+| **REFERENCE** | Static cited scientific / system information |
+| **CACHED** | Previously retrieved data retained with age visible |
+| **DEMO / SIMULATED** | Scripted presentation scenario only |
+| **EXPERIMENTAL** | Real method under research, not validated operational warning |
+| **NO DATA** | Reliable data is currently unavailable |
+
+**Missing data is never converted into “safe”.**
+
+---
+
+## External data and integration sources
+
+| Source / service | Role |
+|---|---|
+| **Open-Meteo** | Modelled precipitation history, current conditions and forecast |
+| **NASA EOSDIS GIBS** | Dated Earth-observation imagery |
+| **USGS FDSN** | Regional earthquake catalogue context |
+| **RainViewer** | Optional recent weather-radar overlay where available |
+| **OpenStreetMap / OpenTopoMap** | Geographic / topographic context |
+| **ThingSpeak** | Field-node telemetry |
+| **Copernicus Data Space** | Documented Sentinel processing integration path |
+| **NDMA SACHET / CAP ecosystem** | External authorised public-warning context |
+
+Source audit: [docs/SOURCE-AUDIT.md](docs/SOURCE-AUDIT.md)
+
+---
+
+## Run locally
 
 ### Windows
 
-1. Extract the ZIP into a new folder.
-2. Double-click **`START-HIMGAURAV.bat`**.
-3. The browser opens the v7 AcuSearch Lab at `http://127.0.0.1:8807/#rescue`.
+~~~powershell
+START-HIMGAURAV.bat
+~~~
 
 ### macOS / Linux
 
-```bash
+~~~bash
 ./start-himgaurav.sh
-```
+~~~
 
 or:
 
-```bash
+~~~bash
 python3 serve.py
-```
+~~~
 
-Do **not** rely on double-clicking `index.html` for LIVE operation. `serve.py` is intentionally part of the application: it keeps private credentials out of browser JavaScript and provides same-origin adapters for the live integrations.
+Then open:
 
----
+**http://127.0.0.1:8807/**
 
-## Working AcuSearch research lab
+Useful direct routes:
 
-AcuSearch is implemented as a **measurement-first rescue research workspace**, not a victim detector. The attached first-principles dossier identifies the real gap as a missing link-budget characterisation for phone-band RF and acoustic signals in water-saturated landslide soil. The application therefore measures and records what can actually be tested instead of inventing a rescue range.
+- Command: /#command
+- Satellite: /#satellite
+- Alerts: /#alerts
+- AcuSearch: /#rescue
 
-### What works locally
-
-- **Soil-pit experiment logger** for Wi-Fi, BLE, 1–3 kHz audible tone and a wired contact-microphone/piezo control.
-- Fixed burial-depth protocol points at 0, 0.3, 0.6, 1.0, 1.5 and 2.0 m.
-- Dry, damp and saturated-soil conditions.
-- Lateral distance, detected / no-signal outcome, replicate number, optional RSSI or browser dBFS metric and field notes.
-- **Working acoustic test bench** using Web Audio: 1, 2 or 3 kHz sine tone plus adjustable low output level.
-- **Working microphone meter** using browser microphone permission on localhost. It reports approximate dBFS and peak level; it is not calibrated SPL.
-- One-click transfer of the current microphone dBFS reading into the experiment log.
-- Filterable detection-vs-distance chart, trial summary and protocol-coverage matrix.
-- CSV export and re-import of AcuSearch measurements.
-- All measurements remain local in browser storage unless the operator exports them.
-- A field-reality panel keeps proven USAR methods separate from the unverified phone-in-saturated-soil hypothesis.
-- The full research rationale is packaged at `docs/ACUSEARCH-RESEARCH.md`.
-
-### What AcuSearch deliberately does **not** claim
-
-- no survivor detection,
-- no phone detection range in landslide mud,
-- no UWB / Wi-Fi / BLE range extrapolated from rubble,
-- no rescue probability,
-- no AI victim classifier,
-- no claim that a negative trial means all rescue technology fails.
-
-The result can legitimately be **“this modality is unusable under the tested soil condition.”** That is a valid research result and is stronger than a fabricated demo.
+Do not rely on double-clicking index.html for the complete LIVE workflow because the local gateway provides same-origin API adapters and keeps private integration credentials out of browser JavaScript.
 
 ---
 
-## What v7 retains in the Alert Centre
+## Repository structure
 
-The v5 alert page depended too heavily on an optional cloud translation connector. That meant the language selector could look complete while translation failed on a normal machine with no credentials. v6 removes that dependency from the core workflow.
-
-### 1. 23 languages now work locally
-
-The alert composer includes **English + all 22 Scheduled Languages of India** as built-in operational templates. Selecting a language immediately produces a localized alert from the current HIMGAURAV evidence state. No BHASHINI key, external translation API, login, or network request is required.
-
-The local template engine translates the structured alert parts that HIMGAURAV actually controls:
-
-- state-specific headline,
-- rainfall-threshold situation wording,
-- ground-confirmation wording,
-- decision-support disclaimer,
-- protective action.
-
-Dynamic site names, threshold ratios and durations are inserted locally. Urdu, Kashmiri and Sindhi fields switch to right-to-left layout automatically.
-
-These templates are **prototype operational translations, not certified government wording**. The operator can edit any language and press **Save reviewed edits**; reviewed text is marked separately and is preserved in the multilingual CAP package.
-
-### 2. One-click 23-language alert pack
-
-**Build 23-language pack** generates every language block from the same current evidence state. The Language Coverage panel shows which languages are:
-
-- not yet generated,
-- generated from the local template,
-- operator-reviewed.
-
-Only generated language blocks are placed into CAP export, so the file never pretends that an unavailable translation exists.
-
-### 3. Alert preview that shows what a person will actually read
-
-The Alert Centre now has a dedicated live preview card. It updates while the operator:
-
-- changes language,
-- edits text,
-- changes the target radius,
-- switches sites,
-- regenerates from current evidence.
-
-The preview carries the actual HIMGAURAV state and is separate from the scientific evidence panel so the operator can judge both the evidence and the public-facing wording.
-
-### 4. Capability-aware local outputs
-
-The main alert page only presents core features that can genuinely execute on the operator device:
-
-- **Browser notification** — uses the browser's real permission system on localhost.
-- **Read aloud** — enabled only if the browser/OS has a matching voice for the selected language. If no voice is installed, the button is disabled and the interface says so.
-- **Local drill siren** — Web Audio test pattern triggered by an operator click.
-- **CAP 1.2 XML** — real local file export with multilingual `<info>` blocks and a geographic circle.
-- **Copy alert text** — clipboard copy with a compatibility fallback.
-- **Structured JSON** — downloadable machine-readable draft for testing/integration.
-
-No feature is labelled READY merely because the UI has a button.
-
-### 5. Evidence-to-alert readiness gate
-
-The gate checks six visible conditions:
-
-1. evidence mode is LIVE rather than scripted DEMO,
-2. the selected point is an operational slope rather than a regional context point,
-3. rainfall data is fresh enough,
-4. the site has reached a screening level that justifies stronger wording,
-5. an independent same-slope ground signal is or is not present,
-6. the local language engine is available.
-
-WATCH can therefore produce a screening draft while still showing that ground movement is unconfirmed. WARNING remains tied to the existing HIMGAURAV state logic rather than being created by the alert page.
-
-### 6. Geo-targeting remains honest
-
-The operator may select a 1, 3, 5 or 10 km communication circle and preview it on the Command map. The application explicitly labels this as an **operator-selected communication target**, not a landslide run-out or impact model.
-
-### 7. Optional external connectors are hidden until real
-
-Agency webhook, local gateway/LoRa bridge and read-only SACHET reference feed are moved into **Optional Integrations**. Their action cards stay hidden unless the local server reports that a real endpoint is configured in `.env`.
-
-The core alert workflow does **not** depend on these connectors.
-
-NDMA SACHET / telecom Cell Broadcast remains authoritative external infrastructure. HIMGAURAV does not claim publishing rights.
-
-## Alert settings
-
-Open **Alerts → Settings**. The panel controls:
-
-- default language,
-- default communication radius,
-- browser speech rate,
-- automatic internal-draft threshold,
-- browser notification preference,
-- automatic WARNING speech only when a matching voice actually exists,
-- high-contrast presentation.
-
-It also reports the current browser's notification and speech capabilities and shows optional connector status without pretending they are active.
-
-## Optional external integrations
-
-These are not required for the working v7 alert centre. Configure them only when you own or are authorised to use the endpoint.
-
-### Controlled agency/test webhook
-
-```env
-ALERT_WEBHOOK_URL=https://your-authorised-endpoint.example/alerts
-ALERT_WEBHOOK_TOKEN=optional-bearer-token
-```
-
-### Local siren / LoRa / Node-RED gateway
-
-```env
-LOCAL_GATEWAY_WEBHOOK_URL=http://127.0.0.1:8890/alert
-LOCAL_GATEWAY_WEBHOOK_TOKEN=optional-token
-```
-
-The repository includes `tools/local_alert_gateway.py` for a local integration test.
-
-### Read-only official SACHET reference
-
-```env
-SACHET_CAP_FEED_URL=https://authorised-or-provided-feed.example/cap.xml
-```
-
-or an agency-provided identifier supported by the local gateway. This is read-only and never changes HIMGAURAV's own slope state.
-
-## Existing Satellite + IoT system retained
-
-### Satellite Intelligence
-
-The Satellite workspace retains actual dated NASA GIBS Earth-observation products:
-
-- HLS Sentinel-2 surface reflectance (30 m),
-- Suomi NPP VIIRS true colour,
-- VIIRS false colour,
-- MODIS Terra true colour.
-
-Imagery is dated Earth observation, not a continuous live camera. Cloud/acquisition gaps remain visible. Sentinel-1/InSAR remains an authenticated/future processing integration rather than a fabricated displacement layer.
-
-### Rainfall intelligence
-
-Open-Meteo supplies numerical weather-model precipitation/history/forecast data. It is not presented as an IMD rain gauge. The existing Shimla intensity-duration screening relation is retained:
-
-```text
-I = 7.20 × D^-0.26
-```
-
-with 1, 2, 3, 5, 7 and 10-day durations and a 30-day / 110 mm antecedent reference.
-
-### Site-state rules
-
-For actual monitored slope points:
-
-1. **NORMAL** — tested rainfall durations below the threshold curve.
-2. **MONITOR** — rainfall enters the threshold band but not strongly.
-3. **WATCH** — threshold exceedance plus peak ratio ≥ 2× or antecedent 30-day rainfall ≥ 110 mm.
-4. **WARNING** — WATCH plus sustained same-slope inclination anomaly from a connected field node.
-5. **NO DATA** — rainfall unavailable, too stale or too incomplete.
-
-Generic town/district points remain **REGIONAL** context only and cannot become slope WATCH/WARNING.
-
-### Ground node
-
-ThingSpeak can carry real ESP32/field-node values for:
-
-- inclination/tilt,
-- capacitive soil moisture,
-- rainfall detector/input,
-- battery,
-- RSSI/link metric.
-
-Only the defined sustained inclination anomaly currently corroborates WATCH into WARNING. The other raw sensor fields are not silently turned into an unvalidated risk score.
+~~~text
+HIMGAURAV/
+├── index.html
+├── app.js
+├── styles.css
+├── alert-locales.js
+├── map-loader.js
+├── config.js
+├── config.example.js
+├── serve.py
+├── package.json
+├── assets/
+│   └── himgaurav-mark.svg
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── ACUSEARCH-RESEARCH.md
+│   ├── ALERTING-RESEARCH.md
+│   └── SOURCE-AUDIT.md
+├── tools/
+│   └── local_alert_gateway.py
+├── .env.example
+├── .gitignore
+├── TEST-REPORT.md
+└── README.md
+~~~
 
 ---
 
-## Connect a private ThingSpeak channel
+## Configuration & secret handling
 
-In `.env`:
+This repository is **public**.
 
-```env
-THINGSPEAK_CHANNEL_ID=1234567
-THINGSPEAK_READ_KEY=YOUR_PRIVATE_READ_KEY
-```
+Never commit:
 
-Public ThingSpeak channels can be configured from the Nodes screen without a read key. Never put a ThingSpeak write key in frontend code.
+- .env
+- private ThingSpeak read/write keys
+- webhook bearer tokens
+- OAuth client secrets
+- government / agency credentials
+- personal API keys
+- local alert receiver logs
 
----
+Copy .env.example to .env on your own machine and fill only the integrations you actually use.
 
-## LIVE vs DEMO
-
-**LIVE** uses actual available external services and connected telemetry. Failed or stale sources show failure/staleness rather than being replaced with random values.
-
-**DEMO** is deterministic scripted data used to demonstrate state progression. Real radar/seismic evidence is removed/disabled in DEMO. Alert exports in DEMO use CAP **Exercise** lifecycle semantics.
-
----
-
-## Files
-
-- `index.html` — app shell including Satellite, Alerts and AcuSearch workspaces
-- `styles.css` — responsive UI + alert accessibility states
-- `app.js` — maps, satellite, LIVE/DEMO, sensor analysis, CAP composer, readiness gate, AcuSearch lab and audit
-- `serve.py` — local server + restricted API/connector gateway
-- `.env.example` — private server-side configuration template
-- `config.js` / `config.example.js` — non-secret browser defaults
-- `map-loader.js` — resilient Leaflet loader
-- `docs/SOURCE-AUDIT.md` — existing source/integration audit
-- `docs/ALERTING-RESEARCH.md` — alert-system research and rationale
-- `docs/ACUSEARCH-RESEARCH.md` — first-principles survivor-location research dossier and experiment rationale
-- `TEST-REPORT.md` — local validation results and limitations
-- `legacy-audit.html` — untouched earlier audited prototype
+The repository intentionally contains placeholders only.
 
 ---
 
-## Safety / operational limitation
+## GitHub → Vercel
 
-HIMGAURAV remains a **research and decision-support prototype**, not an authorised public-warning authority. Real operational warning requires validated local sensing, redundancy, calibrated site-specific models, trained operators, emergency procedures, reliable power/comms, authority approval, and integration with official dissemination infrastructure. v7 keeps that boundary visible in the product instead of hiding it.
+The repository is now organised cleanly for source control.
 
-## Prove the local last-mile handoff on your own laptop
+The current v7 backend uses a local Python gateway for some API proxying and private configuration. Before treating a Vercel deployment as production-equivalent, those server routes should be converted to Vercel serverless /api/* functions and secrets should be added through **Vercel Environment Variables**, never committed to GitHub.
 
-A tiny real webhook receiver is included at `tools/local_alert_gateway.py` so you can demonstrate that the Alert Centre is actually sending a packet rather than changing a UI badge.
+---
 
-Terminal 1:
+## Research and operational boundary
 
-```bash
-python tools/local_alert_gateway.py
-```
+HIMGAURAV is a **research and decision-support prototype**, not a certified life-safety warning system.
 
-In `.env`:
+A real deployment would require:
 
-```env
-LOCAL_GATEWAY_WEBHOOK_URL=http://127.0.0.1:8899/himgaurav-alert
-```
+- calibrated site-specific instrumentation,
+- multiple redundant slope nodes,
+- validated local rainfall / geotechnical models,
+- resilient power and communications,
+- edge processing and local siren capability,
+- trained operators,
+- field trials,
+- authority approval,
+- integration with official disaster-warning infrastructure.
 
-Restart HIMGAURAV, open **Alerts**, and click **Send test packet**. The gateway returns an acknowledgement and appends the received packet to `alerts-received.jsonl`.
+The project deliberately keeps those boundaries visible rather than hiding them behind impressive-looking graphics.
 
-That receiver is a development bridge only. In a field deployment its endpoint would be replaced by an authenticated Node-RED / edge-computer / LoRa / siren controller workflow with hardware acknowledgement and fail-safe logic.
+---
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [AcuSearch research dossier](docs/ACUSEARCH-RESEARCH.md)
+- [Alerting research rationale](docs/ALERTING-RESEARCH.md)
+- [External source audit](docs/SOURCE-AUDIT.md)
+- [Validation / test report](TEST-REPORT.md)
+
+---
+
+## 30-second explanation
+
+> **HIMGAURAV is a Satellite–IoT landslide intelligence platform for Himachal Pradesh. Satellite imagery provides wide-area context, rainfall analysis identifies triggering conditions, field nodes provide slope-level ground truth, and the dashboard fuses that evidence into transparent screening states and multilingual alert preparation. If a failure occurs, the AcuSearch module studies whether low-cost phone signals can physically propagate through saturated landslide soil before making any victim-location claim.**
+
+---
+
+<p align="center">
+  <strong>Truth over impressiveness · Evidence over opaque scores · Function over decoration</strong>
+</p>
