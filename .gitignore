@@ -1,3 +1,22 @@
 .env
+.env.*
+!.env.example
+
 __pycache__/
-*.pyc
+*.py[cod]
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local prototype outputs
+alerts-received.jsonl
+*.log
+
+# Local-only secrets / private data
+secrets/
+private/
+*.pem
+*.key
