@@ -8,7 +8,8 @@
   <title>HIMGAURAV — Landslide Intelligence</title>
   <link rel="icon" href="assets/himgaurav-mark.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=7.0.0">
+  <link rel="stylesheet" href="styles.css?v=8.0.0">
+  <link rel="stylesheet" href="validation-lab.css?v=8.0.0">
 </head>
 <body>
   <svg class="icon-sprite" aria-hidden="true">
@@ -35,6 +36,7 @@
     <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4m8.4-8.4a6 6 0 0 1 0 8.4M4.5 4.5a10.6 10.6 0 0 0 0 15m15-15a10.6 10.6 0 0 1 0 15"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M5 20h14"/></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3"/><path d="M7.5 15h9"/></symbol>
   </svg>
 
   <div id="simulationBanner" class="simulation-banner" hidden>
@@ -46,7 +48,7 @@
     <header class="topbar">
       <div class="brand">
         <img src="assets/himgaurav-mark.svg" alt="" width="34" height="34">
-        <div><strong>HIMGAURAV</strong><span>Himalayan slope intelligence · research prototype</span><em class="build-badge">v7.0 · ACUSEARCH LAB</em></div>
+        <div><strong>HIMGAURAV</strong><span>Himalayan slope intelligence · research prototype</span><em class="build-badge">v8.0 · VALIDATION + SAR LAB</em></div>
       </div>
       <div class="feed-strip" aria-live="polite">
         <span class="feed-chip" id="feedWeather"><i></i><b>Rainfall</b><em>starting</em></span>
@@ -58,6 +60,7 @@
       <div class="top-actions">
         <button id="openAlertQuick" class="alert-quick" type="button" title="Open multilingual alert centre"><svg><use href="#i-bell"/></svg><span>Alert Centre</span><i id="alertQuickDot"></i></button>
         <button id="openSatelliteQuick" class="satellite-quick" type="button" title="Open Satellite Intelligence"><svg><use href="#i-satellite"/></svg><span>Satellite Intelligence</span></button>
+        <button id="openValidationQuick" class="validation-quick" type="button" title="Open field validation lab"><svg><use href="#i-flask"/></svg><span>Validation Lab</span></button>
         <button id="openRescueQuick" class="rescue-quick" type="button" title="Open AcuSearch research lab"><svg><use href="#i-rescue"/></svg><span>AcuSearch Lab</span></button>
         <div class="mode-switch" aria-label="Data mode">
           <button id="modeLive" type="button" aria-pressed="true">LIVE</button>
@@ -73,8 +76,10 @@
       <button type="button" data-view="satellite" class="rail-satellite"><svg><use href="#i-satellite"/></svg><span>Satellite</span><small>EO</small></button>
       <button type="button" data-view="sensor"><svg><use href="#i-sensor"/></svg><span>Nodes</span></button>
       <button type="button" data-view="events"><svg><use href="#i-alert"/></svg><span>Events</span></button>
+      <button type="button" data-view="validation" class="rail-validation"><svg><use href="#i-flask"/></svg><span>Validation</span><small>LAB</small></button>
       <button type="button" data-view="alerts" class="rail-alert"><svg><use href="#i-bell"/></svg><span>Alerts</span><small>CAP</small></button>
       <button type="button" data-view="rescue" class="rail-rescue"><svg><use href="#i-rescue"/></svg><span>AcuSearch</span><small>LAB</small></button>
+      <button type="button" data-view="hazard" class="rail-hazard"><svg><use href="#i-alert"/></svg><span>Hazard</span><small>INTEL</small></button>
       <button type="button" data-view="research"><svg><use href="#i-research"/></svg><span>System</span></button>
     </nav>
 
@@ -251,15 +256,139 @@
             </section>
 
             <section class="sat-panel">
-              <div class="section-title"><div><span class="eyebrow">DEFORMATION</span><h2>Sentinel‑1 SAR / InSAR</h2></div><span class="provenance experimental">NOT PROCESSED</span></div>
-              <p>Sentinel‑1 can support deformation analysis, but an honest InSAR result requires paired scenes, orbit/terrain correction, interferogram processing and coherence checks. This build does not invent a displacement heatmap.</p>
+              <div class="section-title"><div><span class="eyebrow">DEFORMATION</span><h2>Sentinel‑1 SAR / InSAR</h2></div><span class="provenance live">ASF CONNECTOR</span></div>
+              <p>This build now connects to the real NASA ASF Sentinel‑1 archive for IW SLC discovery and ASF baseline pair search. When a NASA Earthdata token is configured server-side, selected pairs can be submitted to ASF HyP3 for real InSAR processing. A displacement map is never invented in the browser.</p>
               <div class="button-row">
-                <a id="openWorldview" class="secondary-btn sat-link" target="_blank" rel="noopener noreferrer">Open selected date in NASA Worldview ↗</a>
-                <a class="secondary-btn sat-link" href="https://browser.dataspace.copernicus.eu/" target="_blank" rel="noopener noreferrer">Open Copernicus Browser ↗</a>
+                <button id="jumpSarLab" class="primary-btn" type="button">Open SAR / InSAR lab ↓</button>
+                <a id="openWorldview" class="secondary-btn sat-link" target="_blank" rel="noopener noreferrer">NASA Worldview ↗</a>
+                <a class="secondary-btn sat-link" href="https://search.asf.alaska.edu/" target="_blank" rel="noopener noreferrer">ASF Vertex ↗</a>
+                <a class="secondary-btn sat-link" href="docs/SAR-INSAR.md" target="_blank" rel="noopener">SAR protocol ↗</a>
               </div>
             </section>
           </aside>
         </div>
+
+        <section class="wide-panel sar-lab-panel" id="sarLabPanel">
+          <div class="section-title"><div><span class="eyebrow">SENTINEL-1 · ASF DAAC · HyP3</span><h2>Real SAR / InSAR processing lab</h2></div><span id="sarServiceState" class="provenance recent">DISCOVERY READY</span></div>
+          <p class="lede">Search actual Sentinel-1 IW SLC acquisitions at the selected slope through NASA Alaska Satellite Facility (ASF). Pair discovery uses ASF baseline search. InSAR processing is submitted to ASF HyP3 only when an Earthdata token is configured server-side; no interferogram or displacement value is fabricated locally.</p>
+
+          <!-- InSAR 5-step workflow stepper -->
+          <div class="insar-stepper" aria-label="InSAR workflow pipeline">
+            <div class="insar-step" id="istep-search">
+              <div class="step-num">1</div>
+              <h4>Search ASF</h4>
+              <p>Find real Sentinel‑1 IW SLC scenes at your slope</p>
+              <div class="step-status">CURRENT</div>
+            </div>
+            <div class="insar-step" id="istep-select">
+              <div class="step-num">2</div>
+              <h4>Select reference</h4>
+              <p>Choose one scene as the reference acquisition</p>
+              <div class="step-status">WAITING</div>
+            </div>
+            <div class="insar-step" id="istep-pair">
+              <div class="step-num">3</div>
+              <h4>Find pairs</h4>
+              <p>ASF baseline service returns compatible secondary scenes</p>
+              <div class="step-status">WAITING</div>
+            </div>
+            <div class="insar-step" id="istep-submit">
+              <div class="step-num">4</div>
+              <h4>Submit HyP3</h4>
+              <p>Real cloud processing of INSAR_GAMMA at ASF</p>
+              <div class="step-status">WAITING</div>
+            </div>
+            <div class="insar-step" id="istep-interpret">
+              <div class="step-num">5</div>
+              <h4>Inspect result</h4>
+              <p>Coherence · unwrapped phase · displacement (LOS only)</p>
+              <div class="step-status">WAITING</div>
+            </div>
+          </div>
+
+          <div class="sar-control-grid" style="grid-template-columns: 1fr 1fr 1fr; align-items: end;">
+            <label>Target<select id="sarTarget"><option value="current">Current HIMGAURAV site</option><option value="jngec">JNGEC Sundernagar validation site</option><option value="kotrupi2017">Kotrupi · 2017 historical validation</option></select></label>
+            <label>Search window<select id="sarWindow"><option value="90">Recent 90 days</option><option value="180">Recent 180 days</option><option value="365">Recent 365 days</option><option value="historical">Historical preset</option></select></label>
+            <button id="sarAutoPair" class="primary-btn auto-pulse" type="button">✨ Auto-Discover Best Pair</button>
+          </div>
+          <div class="button-row" style="margin-top: -5px; margin-bottom: 15px;">
+            <button id="sarSearch" class="secondary-btn" type="button">Manual search</button>
+            <button id="sarBaseline" class="secondary-btn" type="button" disabled>Find compatible pairs</button>
+          </div>
+
+          <!-- Live InSAR Discovery Terminal -->
+          <div class="sar-terminal" id="sarTerminal">
+            <div class="term-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span> ASF Live Link Terminal</div>
+            <div class="term-body" id="termBody">
+               <div class="term-line dim">System ready. Select a target and press Auto-Discover.</div>
+            </div>
+          </div>
+
+          <!-- SAR Live Map -->
+          <div class="satellite-map-card" style="height: 420px; margin-bottom: 24px; border: 1.5px solid #c8d4d2;">
+            <div id="sarMap" class="satellite-map" role="application" aria-label="Live Sentinel SAR discovery map"></div>
+            <div class="satellite-hud" style="pointer-events:none">
+              <div><span class="eyebrow">BASEMAP</span><strong>ASF / ESRI Topo Map</strong></div>
+              <div><span class="eyebrow">SAR OVERLAYS</span><strong id="sarMapFootprintCount">0 scenes</strong></div>
+            </div>
+          </div>
+
+          <div class="sar-status-strip">
+            <div><span>Constellation</span><b>Sentinel‑1C / 1D</b><small>current operational C-band SAR context</small></div>
+            <div><span>Input product</span><b>IW SLC</b><small>complex phase preserved for interferometry</small></div>
+            <div><span>Pair source</span><b>ASF baseline service</b><small>real archive metadata</small></div>
+            <div><span>Processor</span><b>ASF HyP3</b><small id="hyp3AuthText">checking Earthdata configuration…</small></div>
+          </div>
+          <div class="sar-pair-strip"><div><span>Reference</span><b id="sarReference">None selected</b></div><div><span>Secondary</span><b id="sarSecondary">None selected</b></div><div><span>Pair check</span><b id="sarPairState">Select a scene, then ask ASF for baseline neighbours</b></div></div>
+
+          <!-- Scene timeline chart (JS-rendered) -->
+          <div id="sarTimelineChart"><div class="empty-state">Search ASF acquisitions to see scene timeline.</div></div>
+
+          <div id="sarResults" class="sar-results"><div class="empty-state">No ASF search has been run in this session.</div></div>
+
+          <!-- Baseline scatter chart (JS-rendered) -->
+          <div id="sarBaselineScatter"><div class="empty-state">Request ASF baseline to see temporal vs perpendicular scatter.</div></div>
+
+          <div class="sar-hyp3-box">
+            <div><span class="eyebrow">REAL ON-DEMAND PROCESSING</span><h3>Generate an InSAR product at ASF</h3><p>Full-scene HyP3 InSAR uses Sentinel‑1 IW SLC pairs. HIMGAURAV submits only the two selected ESA granule IDs. Processing occurs at ASF, not in this browser.</p></div>
+            <div class="sar-job-options"><label>Looks<select id="sarLooks"><option value="20x4">20×4 · 80 m pixel spacing</option><option value="10x2">10×2 · 40 m pixel spacing</option></select></label><label class="check"><input id="sarDisp" type="checkbox" checked> Include displacement maps</label><label class="check"><input id="sarLookVec" type="checkbox"> Include look vectors</label><button id="sarSubmit" type="button" class="primary-btn" disabled>Submit to HyP3</button><button id="sarRefreshJobs" type="button" class="secondary-btn">Refresh my HyP3 jobs</button></div>
+          </div>
+          <div id="hyp3Jobs"><div class="empty-state">Earthdata/HyP3 job list not requested yet.</div></div>
+
+          <!-- InSAR interpretation legend (static educational panel) -->
+          <div class="insar-interpret-panel" aria-label="InSAR output interpretation guide">
+            <h4>🗺 How to read an InSAR product from HyP3</h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <b style="font-size:11px;display:block;margin-bottom:4px;color:#1d4048">Interferometric phase — rainbow colour cycle</b>
+                <div class="insar-colour-bands">
+                  <span style="background:#5500ff"></span><span style="background:#0044ff"></span><span style="background:#00aaff"></span>
+                  <span style="background:#00ff99"></span><span style="background:#aaff00"></span><span style="background:#ffee00"></span>
+                  <span style="background:#ff8800"></span><span style="background:#ff0000"></span>
+                </div>
+                <div class="insar-colour-label"><span>−π</span><span>0</span><span>+π</span></div>
+                <p style="font-size:10.5px;color:#5f6f74;margin:6px 0 0;line-height:1.4">Each colour cycle = one radar wavelength of LOS change (~5.6 cm for C-band). Fringes = deformation or atmospheric signal. Dense fringes near 0 = more change than widely spaced.</p>
+              </div>
+              <div>
+                <b style="font-size:11px;display:block;margin-bottom:4px;color:#1d4048">Coherence — greyscale 0→1</b>
+                <div class="insar-coherence-bar"></div>
+                <div class="insar-colour-label"><span>0 · no correlation</span><span>1 · perfect</span></div>
+                <p style="font-size:10.5px;color:#5f6f74;margin:6px 0 0;line-height:1.4">Dark = decorrelated (vegetation, wet soil, surface change, steep terrain). Bright = stable, coherent. Always check coherence before interpreting phase. Low coherence = phase noise, not displacement.</p>
+              </div>
+            </div>
+            <div class="insar-interpret-grid" style="margin-top:12px">
+              <article><b>Temporal decorrelation</b><p>Vegetation, monsoon moisture and surface change between acquisitions can destroy phase quality. The Himalaya is especially vulnerable. Check coherence first.</p></article>
+              <article><b>Atmospheric signal</b><p>Tropospheric water vapour differences can appear as systematic phase ramps, mimicking deformation. A single interferogram cannot separate deformation from atmosphere.</p></article>
+              <article><b>LOS ≠ slope displacement</b><p>The displacement map assumes deformation is vertical. Real slope movement is complex. Geometry, look angle and incidence direction all affect the observed signal.</p></article>
+              <article><b>Layover and shadow</b><p>Steep Himalayan slopes facing or away from the radar may appear layered or invisible. These are geometry artefacts, not deformation patterns.</p></article>
+            </div>
+            <div class="truth-note" style="margin-top:10px"><b>HIMGAURAV does not change slope state from InSAR alone.</b> Interferograms are research evidence. Warning state requires validated rainfall threshold exceedance plus field-confirmed inclination anomaly.</div>
+          </div>
+
+          <details class="sar-automation"><summary>ASF automation — real subscription-like workflow</summary><div><p>ASF no longer provides the old subscription feature directly; its current documentation recommends building subscription-like workflows with ASF search + HyP3. HIMGAURAV includes a discovery cycle and a scheduler-ready helper script. It never consumes HyP3 credits automatically unless you explicitly enable auto-submit in <code>.env</code>.</p><div class="button-row"><button id="sarAutomation" class="secondary-btn" type="button">Run one automation discovery cycle</button><span id="sarAutomationState" class="quiet">Discovery only by default</span></div></div></details>
+          <div class="truth-note"><b>InSAR interpretation boundary:</b> line-of-sight phase change is not the same as downslope displacement. Coherence loss, vegetation, atmosphere, steep Himalayan geometry and fast failure can invalidate or hide deformation. HIMGAURAV therefore shows product provenance, coherence and processing metadata before any displacement interpretation.</div>
+        </section>
+
 
         <section class="sat-timeline-panel">
           <div class="section-title"><div><span class="eyebrow">IMAGERY TIMELINE</span><h2>Quick date scan</h2></div><small>Dates are requests to the real NASA imagery service; unavailable/cloudy coverage remains visibly unavailable.</small></div>
@@ -443,6 +572,114 @@
         </section>
       </section>
 
+      <section class="view content-view validation-view" id="view-validation" aria-labelledby="validationTitle">
+        <header class="page-head validation-page-head">
+          <div><span class="eyebrow">FIELD VALIDATION · SUNDARNAGAR</span><h1 id="validationTitle">Validation & calibration lab</h1><p>Turn the connected node into defensible evidence: calibrate each sensor against a reference, compare rainfall against official/model sources, quantify radio reliability, and preserve every test as an auditable record.</p></div>
+          <div class="button-row"><button id="validationSnapshot" class="primary-btn" type="button">Run live comparison</button><button id="validationExport" class="secondary-btn" type="button">Export evidence pack</button><button id="validationCsvExport" class="secondary-btn" type="button">Export lab CSV</button></div>
+        </header>
+
+        <section class="wide-panel validation-site-panel">
+          <div class="section-title"><div><span class="eyebrow">TEST SITE</span><h2>JNGEC Sundernagar controlled validation site</h2></div><span class="provenance experimental">CONTROLLED TEST</span></div>
+          <div class="validation-site-grid">
+            <label>Latitude<input id="valLat" type="number" step="0.000001" value="31.5333"></label><label>Longitude<input id="valLon" type="number" step="0.000001" value="76.8833"></label>
+            <div><span>Nearest official reference</span><b>IMD SUNDERNAGAR · WMO 42079</b><small>operational fixed station · ~875 m</small></div>
+            <div><span>Rule</span><b>Safe accessible slope only</b><small>never enter an active slide/crown/toe during rainfall</small></div>
+          </div>
+          <div class="truth-note"><b>Validation principle:</b> do not try to “prove landslide prediction” with one month of data. Validate measurement accuracy, timing, uptime and cross-source consistency first; validate the hazard logic separately against historical landslide records.</div>
+        </section>
+
+        <section class="validation-live-grid">
+          <article class="live-test-card"><span class="eyebrow">FIELD NODE</span><h2 id="valNodeState">Not connected</h2><p id="valNodeDetail">Connect the ThingSpeak node from Nodes.</p><div id="valNodeMetrics" class="mini-metrics"></div></article>
+          <article class="live-test-card"><span class="eyebrow">USGS EARTHQUAKES</span><h2 id="valImdState">Not requested</h2><p id="valImdDetail">Regional seismic activity > M2.5</p><div id="valImdMetrics" class="mini-metrics"></div></article>
+          <article class="live-test-card"><span class="eyebrow">OPEN-METEO</span><h2 id="valModelState">Not requested</h2><p id="valModelDetail">Model value at the test coordinate, not ground truth.</p><div id="valModelMetrics" class="mini-metrics"></div></article>
+          <article class="live-test-card"><span class="eyebrow">SENTINEL-1 / ASF</span><h2 id="valSarState">Not requested</h2><p id="valSarDetail">Latest real IW SLC acquisition metadata.</p><div id="valSarMetrics" class="mini-metrics"></div></article>
+        </section>
+
+        <section class="wide-panel lab-session-panel">
+          <div class="section-title"><div><span class="eyebrow">QA / QC SESSION</span><h2>Traceable field-test identity</h2></div><span id="valSessionState" class="provenance experimental">NOT DOCUMENTED</span></div>
+          <p>Every calibration/comparison should be traceable to the hardware, firmware, reference instrument and conditions used. These fields are stored only in this browser and included in the evidence-pack export.</p>
+          <div class="form-grid lab-session-grid">
+            <label>Test / campaign ID<input id="valSessionId" maxlength="48" placeholder="e.g. JNGEC-MONSOON-01"></label>
+            <label>Node ID / serial<input id="valNodeId" maxlength="48" placeholder="e.g. HG-NODE-01"></label>
+            <label>Firmware / build<input id="valFirmware" maxlength="48" placeholder="commit / firmware version"></label>
+            <label>Operator<input id="valOperator" maxlength="64" placeholder="name / initials"></label>
+            <label>Reference instrument<input id="valReference" maxlength="100" placeholder="digital inclinometer / balance / gauge"></label>
+            <label>Reference calibration / resolution<input id="valReferenceSpec" maxlength="100" placeholder="certificate, resolution, model, uncertainty if known"></label>
+            <label>Ambient temperature °C<input id="valAmbientTemp" type="number" step="0.1" placeholder="optional"></label>
+            <label>Test notes<input id="valSessionNotes" maxlength="180" placeholder="soil texture, mounting, weather, exposure…"></label>
+          </div>
+          <div class="button-row"><button id="saveValidationSession" class="secondary-btn" type="button">Save session metadata</button><a class="text-btn" href="docs/VALIDATION-LAB.md" target="_blank" rel="noopener">Full laboratory protocol ↗</a></div>
+        </section>
+
+        <section class="wide-panel protocol-board">
+          <div class="section-title"><div><span class="eyebrow">PROTOCOL BOARD</span><h2>What must be tested before claiming field validity</h2></div><span id="valProtocolProgress" class="quiet">0 / 7 protocols evidenced</span></div>
+          <div class="protocol-grid" id="validationProtocols"></div>
+        </section>
+
+        <section class="wide-panel reference-bench-panel">
+          <div class="section-title"><div><span class="eyebrow">PUBLISHED COMPARISON BENCH</span><h2>What your results may legitimately be compared with</h2></div><span class="provenance reference">REFERENCE · NOT PASS/FAIL</span></div>
+          <p>Published numbers below are context anchors, not automatic acceptance limits. Your node must be judged from its own reference measurements, uncertainty, repeatability and deployment conditions.</p>
+          <div class="reference-bench-grid">
+            <article><b>Soil moisture calibration</b><span>Recent low-cost capacitive-sensor studies report strong soil-specific calibration fits, including R² around 0.92–0.94 in one loamy-sand study.</span><small>Your local Sundernagar soil must be calibrated independently.</small></article>
+            <article><b>Precipitation measurement</b><span>WMO-No. 8 treats precipitation measurement, calibration, exposure and quality control as a metrology problem.</span><small>A wet/dry board cannot be compared to mm rainfall without a calibrated gauge.</small></article>
+            <article><b>Himalayan slope sensing</b><span>Published Darjeeling/Kalimpong work combines rainfall, MEMS tilt and volumetric water content rather than relying on rainfall alone.</span><small>This supports evidence fusion, not transfer of their thresholds to Sundernagar.</small></article>
+            <article><b>Kotrupi Sentinel-1</b><span>Published work has used Sentinel-1 DInSAR / MTInSAR at the 13 Aug 2017 Kotrupi landslide.</span><small>Use it as a retrospective method comparison, not as ground truth for every pixel.</small></article>
+          </div>
+          <div class="button-row"><a class="secondary-btn sat-link" href="https://community.wmo.int/site/knowledge-hub/programmes-and-initiatives/instruments-and-methods-observation-programme-imop/guide-instruments-and-methods-observation-wmo-no-8" target="_blank" rel="noopener noreferrer">WMO measurement guide ↗</a><a class="secondary-btn sat-link" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC13364378/" target="_blank" rel="noopener noreferrer">Soil calibration study ↗</a><a class="secondary-btn sat-link" href="https://www.mdpi.com/1424-8220/20/9/2611" target="_blank" rel="noopener noreferrer">Himalayan IoT study ↗</a></div>
+        </section>
+
+        <div class="validation-two-col">
+          <section class="wide-panel calibration-panel">
+            <div class="section-title"><div><span class="eyebrow">CAL-01 · MPU6500</span><h2>Static inclination calibration</h2></div><span class="provenance experimental">REFERENCE ANGLE</span></div>
+            <p>Mount the node rigidly. Apply known angles with a digital inclinometer/reference level. Record reference angle and node angle at each step after settling. Repeat in both directions if possible.</p>
+            <div class="cal-entry"><input id="tiltRef" type="number" step="0.001" placeholder="reference °"><input id="tiltNode" type="number" step="0.001" placeholder="node °"><button id="addTiltCal" class="secondary-btn" type="button">Add point</button></div>
+            <div id="tiltCalStats" class="stat-strip"></div><div id="tiltCalTable" class="lab-table"></div>
+            <div class="cal-chart-wrap" aria-label="Tilt calibration scatter plot"><div id="tiltScatterChart"></div><div id="tiltScatterCaption" class="cal-chart-caption">Add ≥2 calibration points to see the reference vs node scatter with identity line.</div></div>
+          </section>
+          <section class="wide-panel calibration-panel">
+            <div class="section-title"><div><span class="eyebrow">CAL-02 · SOIL MOISTURE</span><h2>Gravimetric / volumetric calibration</h2></div><span class="provenance experimental">SOIL-SPECIFIC</span></div>
+            <p>Use soil from the installation site. Record sensor raw value, wet mass, oven-dry mass and known sample volume. HIMGAURAV calculates gravimetric water content and volumetric water content for a soil-specific calibration curve.</p>
+            <div class="cal-entry soil"><input id="soilRaw" type="number" step="0.1" placeholder="sensor raw"><input id="soilWet" type="number" step="0.01" placeholder="wet mass g"><input id="soilDry" type="number" step="0.01" placeholder="dry mass g"><input id="soilVol" type="number" step="0.1" placeholder="sample volume cm³"><select id="soilSet"><option value="cal">Calibration set</option><option value="val">Held-out validation</option></select><button id="addSoilCal" class="secondary-btn" type="button">Add sample</button></div>
+            <div id="soilCalStats" class="stat-strip"></div><div class="truth-note"><b>Hold-out rule:</b> fit the calibration relation only on samples marked Calibration. Samples marked Held-out validation are used to calculate independent prediction error and are never used to fit the line.</div><div id="soilCalTable" class="lab-table"></div>
+            <div class="cal-chart-wrap" aria-label="Soil moisture calibration curve"><div id="soilCurveChart"></div><div id="soilCurveCaption" class="cal-chart-caption">Add ≥2 samples to see raw ADC vs VWC% calibration curve.</div></div>
+          </section>
+        </div>
+
+        <div class="validation-two-col">
+          <section class="wide-panel calibration-panel">
+            <div class="section-title"><div><span class="eyebrow">CAL-03 · RAIN</span><h2>Rain detector / tipping-bucket validation</h2></div><span class="provenance experimental">WMO-STYLE COMPARISON</span></div>
+            <p>A wet/dry board can validate rain occurrence only. For rainfall in millimetres, use a manual gauge or tipping bucket. For a tipping bucket, enter collector area, applied water volume and counted tips to estimate mm per tip.</p>
+            <div class="cal-entry rain"><input id="rainArea" type="number" step="0.1" placeholder="collector area cm²"><input id="rainVolume" type="number" step="0.1" placeholder="applied water mL"><input id="rainTips" type="number" step="1" placeholder="tips"><input id="rainDuration" type="number" step="0.1" placeholder="pour duration min"><button id="calcRainCal" class="secondary-btn" type="button">Add calibration trial</button></div>
+            <div id="rainCalResult" class="stat-strip"></div><div id="rainCalTable" class="lab-table"></div>
+            <div class="form-grid compact"><label>Node rain field semantics<select id="rainMode"><option value="binary">Wet/dry detector only</option><option value="pulse">Each positive feed = one tip</option><option value="cumulative">Cumulative tip counter</option></select></label><label>Calibrated mm / tip<input id="rainMmTip" type="number" step="0.001" placeholder="mean from trials"></label></div>
+          </section>
+          <section class="wide-panel calibration-panel">
+            <div class="section-title"><div><span class="eyebrow">CAL-04 · LoRa</span><h2>Radio reliability trial</h2></div><span class="provenance experimental">LINK QUALITY</span></div>
+            <p>Run a fixed packet test at a known location/distance. Record transmitted, received, RSSI, SNR and latency. There is no universal “good” threshold; report the measured PDR and conditions.</p>
+            <div class="cal-entry lora"><input id="loraSent" type="number" step="1" placeholder="sent"><input id="loraRecv" type="number" step="1" placeholder="received"><input id="loraRssi" type="number" step="0.1" placeholder="avg RSSI dBm"><input id="loraSnr" type="number" step="0.1" placeholder="avg SNR dB"><input id="loraDist" type="number" step="1" placeholder="distance m"><input id="loraLatency" type="number" step="1" placeholder="latency ms"><select id="loraContext"><option value="los">Line of sight</option><option value="vegetation">Vegetation / partial obstruction</option><option value="building">Building obstruction</option><option value="terrain">Terrain / slope obstruction</option></select><button id="addLoraTrial" class="secondary-btn" type="button">Add trial</button></div>
+            <div id="loraStats" class="stat-strip"></div><div id="loraTable" class="lab-table"></div>
+          </section>
+        </div>
+
+        <section class="wide-panel comparison-panel">
+          <div class="section-title"><div><span class="eyebrow">LIVE COMPARISON RECORD</span><h2>Node ↔ official station ↔ weather model</h2></div><span class="provenance derived">DERIVED METRICS</span></div>
+          <p>Each live snapshot can be saved as a dated comparison record. Numeric rainfall comparison is only enabled when the node has a calibrated gauge interpretation; a binary rain detector remains occurrence-only.</p>
+          <div class="form-grid compact comparison-controls"><label>Accumulation windows aligned?<select id="comparisonAligned"><option value="no">No / not verified</option><option value="yes">Yes · same start/end interval verified</option></select></label><label>Alignment note<input id="comparisonAlignmentNote" maxlength="140" placeholder="e.g. 0830 IST → 0830 IST for every source"></label></div>
+          <div class="button-row"><button id="saveComparison" class="primary-btn" type="button">Save current comparison</button><button id="clearValidation" class="secondary-btn" type="button">Clear local validation records</button></div>
+          <div id="comparisonStats" class="stat-strip"></div><div id="comparisonTable" class="lab-table"></div>
+        </section>
+
+        <section class="wide-panel historical-validation-panel">
+          <div class="section-title"><div><span class="eyebrow">HISTORICAL EVENT VALIDATION</span><h2>Kotrupi 13 August 2017 replay</h2></div><span class="provenance reference">KNOWN EVENT</span></div>
+          <p>Use the known Kotrupi failure as a retrospective satellite/algorithm test, not as a substitute for current field calibration. Search the real Sentinel‑1 archive around the event, build compatible pairs, process them through ASF HyP3, and compare spatial patterns with the published Kotrupi DInSAR/MTInSAR literature. Click a step to learn more.</p>
+          <!-- Interactive 4-step Kotrupi stepper (JS populates detail) -->
+          <div class="kotrupi-stepper" id="kotrupiStepperGrid" aria-label="Kotrupi validation steps"></div>
+          <div class="kotrupi-detail" id="kotrupiStepDetail" aria-live="polite"></div>
+          <div class="button-row" style="margin-top:12px"><button id="openKotrupiSar" class="primary-btn" type="button">Open Kotrupi in SAR Lab</button><a class="secondary-btn sat-link" href="https://www.sciencedirect.com/science/article/pii/S0273117721008917" target="_blank" rel="noopener noreferrer">Published Kotrupi DInSAR study ↗</a></div>
+        </section>
+
+      </section>
+
       <section class="view content-view" id="view-rescue" aria-labelledby="rescueTitle">
         <header class="page-head rescue-page-head">
           <div><span class="eyebrow">ACUSEARCH · SATURATED-SOIL RESCUE RESEARCH</span><h1 id="rescueTitle">Measure first. Claim later.</h1><p>A working experiment workspace for the real unanswered question: can any low-cost phone-band or acoustic signal survive realistic water-saturated landslide soil?</p></div>
@@ -536,8 +773,113 @@
 
         <section class="wide-panel caution-panel acu-final-boundary"><strong>The result can legitimately be “this does not work”.</strong><p>The AcuSearch contribution is the measured link budget: detection / no-detection versus modality, burial depth, lateral distance and moisture. A negative result is useful evidence. HIMGAURAV does not invent a rescue range, survivor probability or detection claim when the physics has not been measured.</p></section>
       </section>
+      <section class="view content-view" id="view-hazard" aria-labelledby="hazardTitle">
+        <header class="page-head">
+          <div>
+            <span class="eyebrow">LOCATION HAZARD INTELLIGENCE · REAL DATA ONLY</span>
+            <h1 id="hazardTitle">Location risk profile</h1>
+            <p>Search any location. HIMGAURAV fetches real earthquake history from USGS, real natural event records from NASA EONET, real disaster reports from UN ReliefWeb, and real 90-day accumulated rainfall from Open-Meteo. Nothing is fabricated — every number is sourced.</p>
+          </div>
+          <span class="provenance reference">LIVE UPSTREAM DATA</span>
+        </header>
+
+        <!-- Search panel -->
+        <section class="wide-panel hazard-search-panel">
+          <div class="hazard-search-bar">
+            <input id="hazardLocationInput" type="text" placeholder="Type any location — Kotrupi, Shimla, Dharamshala, Manali, Mandi..." autocomplete="off" spellcheck="false">
+            <button id="hazardSearchBtn" class="primary-btn" type="button">🔍 Analyse location</button>
+          </div>
+          <div class="hazard-presets" id="hazardPresets">
+            <button class="hazard-preset" data-place="Kotrupi, Mandi, Himachal Pradesh, India">📍 Kotrupi</button>
+            <button class="hazard-preset" data-place="Shimla, Himachal Pradesh, India">📍 Shimla</button>
+            <button class="hazard-preset" data-place="Dharamshala, Himachal Pradesh, India">📍 Dharamshala</button>
+            <button class="hazard-preset" data-place="Manali, Himachal Pradesh, India">📍 Manali</button>
+            <button class="hazard-preset" data-place="Mandi, Himachal Pradesh, India">📍 Mandi</button>
+            <button class="hazard-preset" data-place="Kullu, Himachal Pradesh, India">📍 Kullu</button>
+            <button class="hazard-preset" data-place="Kinnaur, Himachal Pradesh, India">📍 Kinnaur</button>
+            <button class="hazard-preset" data-place="Chamba, Himachal Pradesh, India">📍 Chamba</button>
+            <button class="hazard-preset" data-place="Uttarkashi, Uttarakhand, India">📍 Uttarkashi</button>
+            <button class="hazard-preset" data-place="Pithoragarh, Uttarakhand, India">📍 Pithoragarh</button>
+          </div>
+          <div class="hazard-options">
+            <label>Search radius
+              <select id="hazardRadius">
+                <option value="100">100 km</option>
+                <option value="200" selected>200 km</option>
+                <option value="350">350 km</option>
+                <option value="500">500 km (max)</option>
+              </select>
+            </label>
+            <label>Earthquake history
+              <select id="hazardDays">
+                <option value="180">Last 6 months</option>
+                <option value="365" selected>Last 1 year</option>
+                <option value="730">Last 2 years</option>
+              </select>
+            </label>
+            <label>Min magnitude
+              <select id="hazardMinMag">
+                <option value="2.0">M 2.0+</option>
+                <option value="2.5" selected>M 2.5+</option>
+                <option value="4.0">M 4.0+ (significant)</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <!-- Status + Overall Risk Badge -->
+        <div id="hazardStatus" class="hazard-status-bar" hidden>
+          <div id="hazardLocationLabel" class="hazard-location-label"></div>
+          <div id="hazardRiskBadge" class="hazard-risk-badge">COMPUTING…</div>
+          <div id="hazardCoords" class="hazard-coords"></div>
+        </div>
+
+        <!-- Results grid — filled by JS -->
+        <div id="hazardResults" class="hazard-results-grid" hidden>
+
+          <!-- Seismic card -->
+          <section class="hazard-card seismic" id="hCard-seismic">
+            <header><span class="hazard-card-icon">🌍</span><div><h3>Seismic activity</h3><small>USGS Earthquake Hazards Program · Real catalogue</small></div><span id="hSeismicBadge" class="hazard-data-badge">—</span></header>
+            <div class="hazard-card-stats" id="hSeismicStats"></div>
+            <div class="hazard-event-list" id="hSeismicList"></div>
+          </section>
+
+          <!-- Rainfall card -->
+          <section class="hazard-card rainfall" id="hCard-rain">
+            <header><span class="hazard-card-icon">🌧</span><div><h3>Rainfall history (90 days)</h3><small>Open-Meteo ERA5 archive · Real reanalysis</small></div><span id="hRainBadge" class="hazard-data-badge">—</span></header>
+            <div class="hazard-card-stats" id="hRainStats"></div>
+            <div class="hazard-rain-chart" id="hRainChart"></div>
+          </section>
+
+          <!-- NASA EONET events card -->
+          <section class="hazard-card events" id="hCard-events">
+            <header><span class="hazard-card-icon">🛰</span><div><h3>Natural events near this area</h3><small>NASA EONET · Real tracked events — landslides, floods, storms</small></div><span id="hEventsBadge" class="hazard-data-badge">—</span></header>
+            <div class="hazard-event-list" id="hEventsList"></div>
+          </section>
+
+          <!-- ReliefWeb reports card -->
+          <section class="hazard-card reports" id="hCard-reports">
+            <header><span class="hazard-card-icon">📋</span><div><h3>Disaster reports</h3><small>ReliefWeb (UN OCHA) · Real humanitarian situation reports</small></div><span id="hReportsBadge" class="hazard-data-badge">—</span></header>
+            <div class="hazard-event-list" id="hReportsList"></div>
+          </section>
+
+        </div>
+
+        <div id="hazardEmpty" class="hazard-empty">
+          <div>
+            <span style="font-size:48px">🗺</span>
+            <h3>Search any location</h3>
+            <p>Use the search box or click a preset location above. HIMGAURAV will pull real earthquake records, natural event history, disaster reports, and rainfall data — no estimates, no fabrication.</p>
+          </div>
+        </div>
+
+        <div class="truth-note" style="margin: 0 24px 24px;">
+          <b>Intelligence boundary:</b> this profile shows historical observations around the searched location. It is context for an expert or researcher — not a safety certificate. A location with no recorded events in recent data may still carry geological risk; a location with high earthquake frequency may still have good building resilience. Proximity matters but does not determine risk alone.
+        </div>
+      </section>
 
       <section class="view content-view" id="view-research" aria-labelledby="researchTitle">
+
         <header class="page-head"><div><span class="eyebrow">RESEARCH / SYSTEM</span><h1 id="researchTitle">How HIMGAURAV works</h1><p>The detailed science, architecture, limitations and provenance live here so the command screen can stay visual-first.</p></div><a class="secondary-btn link-btn" href="legacy-audit.html" target="_blank" rel="noopener">Open audited original</a></header>
 
         <section class="system-flow wide-panel">
@@ -669,7 +1011,9 @@
 
   <script src="config.js"></script>
   <script src="map-loader.js"></script>
-  <script src="alert-locales.js?v=7.0.0"></script>
-  <script src="app.js?v=7.0.0"></script>
+  <script src="alert-locales.js?v=8.0.0"></script>
+  <script src="app.js?v=8.0.0"></script>
+  <script src="validation-lab.js?v=8.0.0"></script>
+  <script src="hazard-intel.js?v=8.0.0"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-/* HIMGAURAV — map-first scientific interface.
+/* HIMGAURAV v8 — map-first scientific interface with Validation + SAR Lab.
    The core rainfall threshold/state logic below is preserved from the audited
    prototype. UI changes do not change the scientific decision rule. */
 
@@ -97,7 +97,15 @@ const SOURCES = [
   {t:'Smart Disaster Detection and Alerting System Using IoT-Based Edge Sensing',m:'IEEE DataPort, 2025',u:'Cloud-dependency limitation motivating local on-node alert logic.',l:'https://ieee-dataport.org/documents/smart-disaster-detection-and-alerting-system-using-iot-based-edge-sensing'},
   {t:'NASA Global Imagery Browse Services (GIBS)',m:'Earthdata web services',u:'Actual Earth-observation imagery layer exposed through WMS/WMTS without fabricating satellite graphics.',l:'https://earthdata.nasa.gov/eosdis/science-system-description/eosdis-components/gibs'},
   {t:'RainViewer Weather Maps API',m:'Public weather-radar tile API',u:'Recent past radar frames where coverage exists. Missing pixels are not treated as no rainfall.',l:'https://www.rainviewer.com/api/weather-maps-api.html'},
-  {t:'Copernicus Data Space Ecosystem — Sentinel Hub authentication',m:'OAuth2 documentation',u:'Explains why Sentinel layers are an optional secure proxy integration instead of a client-secret-in-browser shortcut.',l:'https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html'}
+  {t:'Copernicus Data Space Ecosystem — Sentinel Hub authentication',m:'OAuth2 documentation',u:'Explains why Sentinel layers are an optional secure proxy integration instead of a client-secret-in-browser shortcut.',l:'https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html'},
+  {t:'NASA Alaska Satellite Facility — SAR Search API',m:'Official ASF DAAC API documentation',u:'Real Sentinel-1 IW SLC acquisition discovery and ASF baseline-pair search used by the SAR/InSAR lab.',l:'https://docs.asf.alaska.edu/api/keywords/'},
+  {t:'ASF HyP3 — Sentinel-1 InSAR Product Guide',m:'Official on-demand processing documentation',u:'Real cloud InSAR processing, coherence/unwrapped phase, optional displacement/look-vector/incidence outputs and their interpretation limits.',l:'https://hyp3-docs.asf.alaska.edu/guides/insar_product_guide/'},
+  {t:'ASF HyP3 — API and authentication',m:'Official HyP3 service documentation',u:'Server-side INSAR_GAMMA job submission using NASA Earthdata credentials; credentials never live in browser code.',l:'https://hyp3-docs.asf.alaska.edu/using/api/'},
+  {t:'India Meteorological Department — Current Weather API',m:'Official IMD API reference',u:'Official Sundernagar station comparison, including last-24-hour rainfall, temperature and humidity where reported.',l:'https://api.imd.gov.in/public/api_reference.html'},
+  {t:'WMO — Guide to Instruments and Methods of Observation (WMO-No. 8)',m:'International measurement/metrology guidance',u:'Reference framework for precipitation measurement, instrument calibration, exposure, quality assurance and traceability.',l:'https://community.wmo.int/site/knowledge-hub/programmes-and-initiatives/instruments-and-methods-of-observation-programme-imop/guide-instruments-and-methods-of-observation-wmo-no-8'},
+  {t:'Soil-Specific Calibration and Integration of Low-Cost Capacitive Soil Moisture Sensors',m:'Peer-reviewed open-access study, 2026',u:'Evidence that low-cost capacitive probes require soil-specific calibration against independent water-content reference measurements.',l:'https://pmc.ncbi.nlm.nih.gov/articles/PMC13364378/'},
+  {t:'IoT-Based Geotechnical Monitoring of Unstable Slopes for Landslide Early Warning in the Darjeeling Himalayas',m:'Sensors 20(9), 2611, 2020',u:'Himalayan field example combining MEMS tilt and volumetric water-content sensing rather than relying on one trigger alone.',l:'https://www.mdpi.com/1424-8220/20/9/2611'},
+  {t:'Kotrupi landslide deformation study using DInSAR and MTInSAR on Sentinel-1 SAR',m:'Advances in Space Research, 2022',u:'Historical research benchmark for retrospective Sentinel-1 deformation analysis at the documented 13 Aug 2017 Kotrupi event.',l:'https://www.sciencedirect.com/science/article/pii/S0273117721008917'}
 ];
 
 
@@ -932,7 +940,7 @@ function maybeAutoAlert(s,prev,r){
 
 function renderAll(){renderCommand();renderSatellite();renderSensor();renderEvents();renderAlerts();renderMeasurements();renderSources();}
 
-function selectSite(id,fly=false){if(!APP.sites.some(s=>s.id===id))return;if(APP.alertZone&&APP.map){APP.map.removeLayer(APP.alertZone);APP.alertZone=null;}APP.siteId=id;$('#siteSelect').value=id;$('#tsSite').value=id;if($('#satSiteSelect'))$('#satSiteSelect').value=id;const s=site();if(fly&&APP.map)APP.map.flyTo([s.lat,s.lon],Math.max(APP.map.getZoom(),10),{duration:.7});if(APP.satMap){APP.satMap.flyTo([s.lat,s.lon],s.kind==='town'?10:13,{duration:.7});updateSatelliteMarker();}updateFallbackMap();renderCommand();renderSatelliteMeta();renderAlerts();}
+function selectSite(id,fly=false){if(!APP.sites.some(s=>s.id===id))return;if(APP.alertZone&&APP.map){APP.map.removeLayer(APP.alertZone);APP.alertZone=null;}APP.siteId=id;$('#siteSelect').value=id;$('#tsSite').value=id;if($('#satSiteSelect'))$('#satSiteSelect').value=id;const s=site();if(fly&&APP.map)APP.map.flyTo([s.lat,s.lon],Math.max(APP.map.getZoom(),10),{duration:.7});if(APP.satMap){APP.satMap.flyTo([s.lat,s.lon],s.kind==='town'?10:13,{duration:.7});updateSatelliteMarker();}updateFallbackMap();renderCommand();renderSatelliteMeta();renderAlerts();window.dispatchEvent(new CustomEvent('himgaurav:sitechange',{detail:{site:{...s}}}));}
 function go(view){APP.view=view;$$('.view').forEach(v=>v.classList.toggle('is-active',v.id===`view-${view}`));$$('.rail button[data-view], .mobile-nav button[data-view]').forEach(b=>b.setAttribute('aria-current',b.dataset.view===view?'page':'false'));if(location.hash!==`#${view}`)history.replaceState(null,'',`#${view}`);if(view==='command'&&APP.map)setTimeout(()=>APP.map.invalidateSize(),30);if(view==='satellite'){renderSatellite();if(APP.satMap)setTimeout(()=>APP.satMap.invalidateSize(),30);}if(view==='alerts')renderAlerts();if(view==='rescue'){updateRescueMetricLabel();renderMeasurements();}}
 function fillSelects(){
   const ssel=$('#siteSelect'),tss=$('#tsSite'),satSel=$('#satSiteSelect');ssel.innerHTML='';tss.innerHTML='';if(satSel)satSel.innerHTML='';for(const s of APP.sites){for(const target of [ssel,tss,satSel].filter(Boolean)){const o=document.createElement('option');o.value=s.id;o.textContent=`${s.kind==='town'?'Context':'Slope'} · ${s.name} · ${s.area}`;target.appendChild(o);}}ssel.value=APP.siteId;tss.value=ctx().sensor.siteId||APP.siteId;if(satSel)satSel.value=APP.siteId;
@@ -1035,6 +1043,7 @@ function refreshAll(){
 function wireUI(){
   $$('.rail button[data-view], .mobile-nav button[data-view]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
   $('#openSatelliteQuick')?.addEventListener('click',()=>go('satellite'));
+  $('#openValidationQuick')?.addEventListener('click',()=>go('validation'));
   $('#openRescueQuick')?.addEventListener('click',()=>go('rescue'));
   $('#openAlertQuick')?.addEventListener('click',()=>go('alerts'));
   $('#alertOpenCommand')?.addEventListener('click',()=>go('command'));
@@ -1090,7 +1099,7 @@ async function boot(){
   if(!APP.alertDraft?.translations?.en)generateAlertDraft({silent:true});else loadAlertLanguage(APP.alertDraft.language||APP.alertSettings.language||'en');
   renderAll();updateRescueMetricLabel();updateToneGainLabel();probeGateway();
   const requestedView=location.hash.slice(1);
-  if(['command','satellite','sensor','events','alerts','rescue','research'].includes(requestedView))go(requestedView);
+  if(['command','satellite','sensor','events','validation','alerts','rescue','research'].includes(requestedView))go(requestedView);
   detectStateChanges(APP.live); fetchWeather(false); autoConnectConfiguredSensor();
 
   /* Map loading must never block the live data panels. */
@@ -1105,6 +1114,17 @@ async function boot(){
   window.addEventListener('offline',()=>toast('Network offline. Dated cached values may remain visible; unknown is never shown as safe.'));
   window.addEventListener('beforeunload',()=>{stopAcuTone();stopAcuMic();});
 }
+window.HIMGAURAV_RUNTIME={
+  getSite:()=>({...site()}),
+  getSites:()=>APP.sites.map(s=>({...s})),
+  getMode:()=>APP.mode,
+  getSensor:()=>JSON.parse(JSON.stringify(ctx().sensor||{})),
+  getSiteState:()=>{const r=computeStateFor(site());return JSON.parse(JSON.stringify(r));},
+  getWeatherForSite:()=>{const w=ctx().weather?.[site().id];return w?JSON.parse(JSON.stringify(w)):null;},
+  refreshSensor:()=>pollSensor(),
+  go:(view)=>go(view)
+};
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>boot());else boot();
 
 })();

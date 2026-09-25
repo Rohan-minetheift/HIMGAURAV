@@ -1,76 +1,116 @@
-# HIMGAURAV v7.0 — AcuSearch Lab test report
+# HIMGAURAV v8.0 — Validation + Sentinel-1 SAR/InSAR Lab test report
 
-## Build under test
+## Build
 
-`7.0-acusearch-lab`
+`8.0-validation-sar-lab`
 
-Expected header badge: **v7.0 · ACUSEARCH LAB**  
-Expected AcuSearch route: `http://127.0.0.1:8807/#rescue`
+Default local URL: `http://127.0.0.1:8818/#validation`
 
-## Static validation — PASS
+## What was tested in this build environment
 
-- `node --check app.js` — PASS.
-- `node --check alert-locales.js` — PASS.
-- `python3 -m py_compile serve.py` — PASS.
-- HTML parsed successfully with BeautifulSoup.
-- 275 unique element IDs; **0 duplicate IDs**.
-- 228 direct JavaScript `$('#id')` references checked against the HTML; **0 missing IDs**.
-- `view-rescue`, `rescueTitle`, logger controls, acoustic-bench controls, filter controls and results containers are present.
-- `docs/ACUSEARCH-RESEARCH.md` is packaged with the application.
+### Static / syntax checks — PASS
 
-## Local server — PASS
+- `node --check app.js`
+- `node --check alert-locales.js`
+- `node --check validation-lab.js`
+- `python -m py_compile serve.py`
+- `python -m py_compile tools/asf_insar_watch.py`
+- `python -m py_compile tools/local_alert_gateway.py`
+- `npm test`
 
-The v7 local gateway was started on port **8807**.
+### HTML / DOM integrity — PASS
 
-- `/` returned HTTP 200.
-- `/api/health` returned `ok: true`.
-- `/api/health` identified `build: 7.0-acusearch-lab`.
-- Server header identified `HIMGAURAV/7.0`.
+- 368 HTML IDs found
+- 368 unique IDs
+- 0 duplicate IDs
+- 318 direct JavaScript `#id` references checked
+- 0 missing direct ID references
+- 0 missing local files referenced by `index.html`
 
-The dedicated port is intentional so old 8795/8796/8797 development servers cannot be mistaken for this build.
+### Local server — PASS
 
-## AcuSearch implementation checks
+The v8 server was started on port 8818.
 
-The source implementation was checked for the following real/local functions:
+- `/` → HTTP 200
+- `/api/health` → HTTP 200
+- `docs/VALIDATION-LAB.md` → served correctly
+- `docs/SAR-INSAR.md` → served correctly
+- health endpoint identifies build `8.0-validation-sar-lab`
+- with no Earthdata token configured, `/api/hyp3/status` returns configured=false rather than pretending processing is available
 
-- measurement logger with modality, depth, moisture, lateral distance, outcome, metric, replicate and note;
-- separate Wi-Fi, BLE, audible and wired-control modalities;
-- filterable results table;
-- observed-distance SVG chart;
-- protocol coverage matrix;
-- CSV export;
-- CSV re-import parser compatible with HIMGAURAV AcuSearch export columns;
-- Web Audio 1/2/3 kHz sine-tone source with low adjustable gain;
-- `getUserMedia()` microphone capture with echo cancellation, noise suppression and AGC requested off;
-- approximate RMS-to-dBFS browser meter;
-- microphone peak hold;
-- one-click copying of the live dBFS value into the experiment log;
-- explicit cleanup of oscillator/microphone tracks on stop and page unload.
+### Upstream failure handling — PASS in this environment
 
-## Important execution-environment limitation
+This execution container blocks external DNS/network access. Calls to official IMD and ASF endpoints therefore returned upstream network errors. The local gateway converted them into API error responses rather than substituting random/simulated measurements.
 
-The managed Chromium available in this build environment blocks navigation to both localhost and local `file://` pages with an organisation policy page. Therefore I could not truthfully perform the final click-through of microphone permission, Web Audio playback and browser download interactions in Chromium here.
+This validates the failure path, **not** the external services themselves.
 
-Those features use standard browser APIs and passed JavaScript syntax/DOM-reference checks, but they must be click-tested on the target laptop after launch. The application itself exposes failures instead of substituting fake readings.
+## What could NOT be truthfully end-to-end tested here
 
-Recommended target-machine check:
+Because outbound DNS/network access is blocked in this container, this report does **not** claim an end-to-end live transaction with:
 
-1. Start `START-HIMGAURAV.bat`.
-2. Open AcuSearch.
-3. Start a 2 kHz tone at the default low output level and stop it.
-4. Click **Start microphone**, grant permission, verify dBFS changes with sound, then stop it.
-5. Log one dry control trial and one saturated trial.
-6. Verify the results chart/table and coverage matrix update.
-7. Export CSV, clear local data, re-import the CSV, and verify the rows return.
+- IMD API,
+- NASA ASF SearchAPI,
+- ASF baseline service,
+- ASF HyP3,
+- Open-Meteo,
+- ThingSpeak,
+- USGS,
+- RainViewer,
+- NASA GIBS.
 
-## Scientific boundary preserved
+Those services were researched against their current official documentation and the application routes were implemented to their documented request structures. They must still be exercised on the user's normal internet-connected machine.
 
-AcuSearch does **not** produce:
+## Sentinel-1 / HyP3 safeguards checked in code
 
-- survivor detections,
-- phone-in-mud range claims,
-- rescue probability,
-- AI victim classifications,
-- a false statement that Wi-Fi/BLE/UWB has been validated in saturated landslide soil.
+- Search requests Sentinel-1 dataset, IW beam mode and SLC products.
+- Pair candidates come from the ASF baseline endpoint.
+- HyP3 uses `INSAR_GAMMA` with real ESA granule IDs.
+- Earlier/later acquisition ordering is normalised server-side when acquisition time can be parsed from the granule IDs.
+- displacement maps are optional real HyP3 outputs, not generated browser values.
+- Earthdata token is read server-side from `EARTHDATA_TOKEN` only.
+- manual job submission requires UI confirmation.
+- automation defaults to discovery-only.
+- automated submission requires `ASF_AUTO_SUBMIT=1` **and** explicit submit confirmation.
 
-The workspace implements the measurement gap described in `docs/ACUSEARCH-RESEARCH.md`: record a link budget first, then decide whether a phone-based method is physically viable.
+## Validation Lab behaviour checked in code
+
+- session metadata is persisted locally and included in evidence export.
+- tilt calibration calculates bias, MAE, RMSE and R².
+- soil calibration calculates gravimetric water content and an experimental volumetric water-content estimate from mass difference / known volume.
+- binary rain mode never creates rainfall millimetres.
+- tipping-bucket calibration uses collector area + applied volume + tip count to estimate mm/tip.
+- LoRa tests calculate PDR from sent/received packets and retain RSSI/SNR/distance.
+- live comparison records keep IMD/model/node provenance separate.
+- comparison UI explicitly warns that accumulation windows must be aligned before publication.
+- historical Kotrupi evaluation is labelled a retrospective method benchmark rather than predictive validation.
+
+## Browser smoke-test limitation
+
+A Chromium headless smoke test was attempted. The container's Chromium environment did not complete navigation/dump reliably because of sandbox/system-service/network restrictions, so this report does not claim a full click-through browser automation pass.
+
+The build therefore has strong static/runtime-server validation but should receive a final click-through on the actual presentation laptop after external services and the user's ThingSpeak node are configured.
+
+## Required real-machine acceptance test
+
+Before presenting v8, run these on an internet-connected computer:
+
+1. Open `/#validation` and save a QA/QC session.
+2. Connect the real ThingSpeak node.
+3. Run **Live comparison** and confirm IMD 42079, Open-Meteo and ASF each show either real timestamped data or a clear unavailable state.
+4. Open `/#satellite` → JNGEC target → Search ASF acquisitions.
+5. Confirm returned scene IDs resolve in ASF Vertex.
+6. Select a scene → Find compatible pairs.
+7. If Earthdata/HyP3 is configured, submit one deliberately chosen pair and verify the same job appears in the ASF HyP3 account.
+8. Wait for completion and download the real product ZIP/GeoTIFFs.
+9. Record one tilt calibration series and one soil-moisture calibration series.
+10. Verify binary rain mode never reports mm.
+11. Export the validation evidence pack and reopen its JSON.
+12. Test node power-off / network-off and confirm the UI changes to stale/offline rather than NORMAL.
+
+## Result
+
+**Local build integrity: PASS.**
+
+**External live-service end-to-end validation: REQUIRED on an internet-connected machine.**
+
+This distinction is intentional; the project must not claim a live test that was not actually executed.
