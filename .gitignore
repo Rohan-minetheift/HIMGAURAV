@@ -1,11 +1,22 @@
-# secrets — never commit
 .env
-*.pyc
+.env.*
+!.env.example
+
 __pycache__/
-*.zip
-*.tif
-*.tiff
-*.zip
-node_modules/
+*.py[cod]
+
+# OS / editor noise
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+
+# Local prototype outputs
+alerts-received.jsonl
+*.log
+
+# Local-only secrets / private data
+secrets/
+private/
+*.pem
+*.key

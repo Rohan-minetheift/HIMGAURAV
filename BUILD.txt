@@ -1,11 +1,8 @@
-HIMGAURAV build 8.0-validation-sar-lab
-Satellite + IoT + Working Multilingual Alerts + AcuSearch + Field Validation + Sentinel-1/ASF InSAR Lab
+HIMGAURAV build 7.0-acusearch-lab
+Satellite + IoT + Working Multilingual Alerts + AcuSearch saturated-soil research lab
 
-Default local port: 8818
-Validation Lab: http://127.0.0.1:8818/#validation
-SAR / InSAR Lab: http://127.0.0.1:8818/#satellite
-AcuSearch: http://127.0.0.1:8818/#rescue
-Alerts: http://127.0.0.1:8818/#alerts
+Direct AcuSearch workspace: http://127.0.0.1:8807/#rescue
+Direct Alert Centre: http://127.0.0.1:8807/#alerts
+Default local port: 8807
 
-Scientific boundary: measurement and evidence validation are separate from predictive-accuracy claims.
-Sentinel-1 products are discovered from ASF. InSAR processing is real only when an Earthdata token is configured and a HyP3 job is explicitly submitted.
+AcuSearch is an experimental measurement workspace, not a survivor detector.

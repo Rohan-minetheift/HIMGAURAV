@@ -1,13 +1,13 @@
 {
   "name": "himgaurav-webapp",
-  "version": "8.0.0",
-  "description": "HIMGAURAV Satellite–IoT landslide intelligence with field validation and real Sentinel-1/ASF InSAR workflows.",
+  "version": "7.0.0",
+  "description": "HIMGAURAV Satellite\u2013IoT landslide intelligence with a local-first multilingual alert centre.",
   "main": "app.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "check:js": "node --check app.js && node --check alert-locales.js && node --check validation-lab.js",
+    "check:js": "node --check app.js && node --check alert-locales.js",
     "serve": "python3 serve.py",
     "test": "npm run check:js"
   },
